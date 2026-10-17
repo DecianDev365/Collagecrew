@@ -8,6 +8,9 @@
      - items partition row width by weight
      - resizing one item renormalises its row / the other rows,
        so "corresponding" neighbours shrink or grow automatically
+     - LOCK: an item pinned to the cell aspect it had at lock time
+     - WHITE SPACE mode: every item pinned to its natural aspect,
+       leftover paper stays white, nothing is cropped
      --------------------------------------------------------- */
 
   const canvas = document.getElementById('canvas');
@@ -19,19 +22,23 @@
   const hudSelected = document.getElementById('hudSelected');
   const gapRange = document.getElementById('gapRange');
   const gapVal = document.getElementById('gapVal');
+  const wsCheck = document.getElementById('wsCheck');
+  const modeLabel = document.getElementById('modeLabel');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-  const MIN = 44;          // min cell size in display px
+  const MIN = 44;               // min cell size in display px
   const EXPORT_W = 3200;
   const EXPORT_H = 1800;
+  const CAR = 16 / 9;           // canvas aspect ratio (w / h)
 
   const state = {
-    items: [],             // flat list, insertion order
-    rows: [],              // [{ weight, items: [item, ...] }]
+    items: [],
+    rows: [],
     selected: null,
     userModified: false,
     gap: 0,
-    seq: 0
+    seq: 0,
+    whitespace: false
   };
 
   const pad = n => String(n).padStart(2, '0');
@@ -39,23 +46,118 @@
   const rowOf = item => state.rows.find(r => r.items.includes(item));
 
   /* ---------------------------------------------------------
-     Layout maths
+     Layout solver
      --------------------------------------------------------- */
 
-  function fractions() {
-    const out = [];
-    const totalH = state.rows.reduce((s, r) => s + r.weight, 0) || 1;
-    let y = 0;
-    for (const r of state.rows) {
-      const h = r.weight / totalH;
-      const sumW = r.items.reduce((s, i) => s + i.weight, 0) || 1;
-      let x = 0;
-      for (const it of r.items) {
-        const w = it.weight / sumW;
-        out.push({ item: it, row: r, x, y, w, h });
-        x += w;
+  function heightFractions() {
+    const rows = state.rows;
+    const n = rows.length;
+    if (!n) return { h: [], T: 0 };
+
+    const totalW = rows.reduce((s, r) => s + r.weight, 0) || 1;
+    const h = rows.map(r => r.weight / totalW);
+
+    if (state.whitespace) {
+      // every image keeps its natural aspect: content width of a row
+      // = sum(aspects) * h / canvasAR. Shrink rows that overflow.
+      for (let r = 0; r < n; r++) {
+        const sumAr = rows[r].items.reduce((s, i) => s + i.ar, 0) || 1;
+        const contentW = sumAr * h[r] / CAR;
+        if (contentW > 1) h[r] /= contentW;
       }
-      y += h;
+      // rows do NOT fill the canvas height here — leftover stays white
+    } else {
+      // locked items pin their width via: w = lockAR * h / canvasAR.
+      // Give each row a max height so locked content fits, redistribute.
+      const dispW = canvas.clientWidth || 1280;
+      const minF = MIN / dispW;
+      const caps = rows.map(row => {
+        let sumLockAR = 0;
+        let freeCount = 0;
+        for (const i of row.items) {
+          if (i.locked) sumLockAR += i.lockAR;
+          else freeCount++;
+        }
+        if (!sumLockAR) return Infinity;
+        const capacity = freeCount ? Math.max(0, 1 - freeCount * minF) : 1;
+        return capacity * CAR / Math.max(sumLockAR, 1e-9);
+      });
+
+      for (let pass = 0; pass < n + 2; pass++) {
+        let excess = 0;
+        const capped = new Array(n).fill(false);
+        for (let r = 0; r < n; r++) {
+          if (h[r] > caps[r]) {
+            excess += h[r] - caps[r];
+            h[r] = caps[r];
+            capped[r] = true;
+          }
+        }
+        if (excess < 1e-9) break;
+        let freeSum = 0;
+        for (let r = 0; r < n; r++) if (!capped[r]) freeSum += h[r];
+        if (freeSum < 1e-9) break;
+        for (let r = 0; r < n; r++) if (!capped[r]) h[r] += excess * h[r] / freeSum;
+      }
+      // normal mode always fills the canvas height
+      const T2 = h.reduce((s, v) => s + v, 0) || 1;
+      for (let r = 0; r < n; r++) h[r] /= T2;
+    }
+
+    const T = h.reduce((s, v) => s + v, 0);
+    return { h, T };
+  }
+
+  function rowCells(row, hr) {
+    const items = row.items;
+
+    if (state.whitespace) {
+      const cells = items.map(i => ({ item: i, w: i.ar * hr / CAR }));
+      const sum = cells.reduce((s, c) => s + c.w, 0);
+      return { startX: Math.max(0, (1 - sum) / 2), cells };
+    }
+
+    const lockedW = new Map();
+    let lockedSum = 0;
+    for (const i of items) {
+      if (i.locked) {
+        const w = i.lockAR * hr / CAR;
+        lockedW.set(i, w);
+        lockedSum += w;
+      }
+    }
+    const free = items.filter(i => !i.locked);
+
+    if (!free.length) {
+      // all locked — centre the group, leftover paper shows
+      return {
+        startX: Math.max(0, (1 - lockedSum) / 2),
+        cells: items.map(i => ({ item: i, w: lockedW.get(i) }))
+      };
+    }
+
+    const freeTotal = Math.max(0, 1 - lockedSum);
+    const sumFreeW = free.reduce((s, i) => s + i.weight, 0) || 1;
+    const cells = items.map(i => i.locked
+      ? { item: i, w: lockedW.get(i) }
+      : { item: i, w: freeTotal * (i.weight / sumFreeW) });
+    return { startX: 0, cells };
+  }
+
+  function fractions() {
+    const rows = state.rows;
+    if (!rows.length) return [];
+    const { h, T } = heightFractions();
+    const out = [];
+    let y = state.whitespace ? Math.max(0, (1 - T) / 2) : 0;
+    for (let r = 0; r < rows.length; r++) {
+      const { startX, cells } = rowCells(rows[r], h[r]);
+      let x = startX;
+      for (const c of cells) {
+        out.push({ item: c.item, row: rows[r], x, y, w: c.w, h: h[r] });
+        x += c.w;
+      }
+      y += h[r];
     }
     return out;
   }
@@ -68,6 +170,8 @@
       el.style.top = (f.y * 100) + '%';
       el.style.width = (f.w * 100) + '%';
       el.style.height = (f.h * 100) + '%';
+      f.item._w = f.w;
+      f.item._h = f.h;
       f.item.tag.textContent = pad(i + 1);
     });
     updateSelection();
@@ -79,8 +183,14 @@
     }
   }
 
-  function rebuildDefault() {
+  function rebuildDefault(clearLocks) {
     state.rows = [];
+    if (clearLocks) {
+      for (const it of state.items) {
+        it.locked = false;
+        it.lockAR = 0;
+      }
+    }
     const n = state.items.length;
     if (!n) return;
     const cols = Math.min(n, Math.max(1, Math.round(Math.sqrt(n * 4 / 3))));
@@ -103,7 +213,19 @@
      --------------------------------------------------------- */
 
   function addItem(img, name) {
-    const item = { id: ++state.seq, img, name: name || 'image', weight: 1 };
+    const item = {
+      id: ++state.seq,
+      img,
+      name: name || 'image',
+      weight: 1,
+      locked: false,
+      lockAR: 0,
+      ar: (img.naturalWidth && img.naturalHeight)
+        ? img.naturalWidth / img.naturalHeight
+        : 1,
+      _w: 0,
+      _h: 0
+    };
 
     const el = document.createElement('div');
     el.className = 'cell enter';
@@ -111,6 +233,28 @@
 
     const tag = document.createElement('div');
     tag.className = 'tag';
+
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.className = 'lockbtn';
+    lockBtn.title = 'Lock / unlock proportions';
+    lockBtn.setAttribute('aria-label', 'Lock / unlock proportions');
+    lockBtn.setAttribute('aria-pressed', 'false');
+    lockBtn.innerHTML =
+      '<svg class="ico-open" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="4" y="11" width="16" height="10" rx="1"/>' +
+      '<path d="M8 11V7a4 4 0 0 1 7.5-1.8"/></svg>' +
+      '<svg class="ico-closed" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="4" y="11" width="16" height="10" rx="1"/>' +
+      '<path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+    lockBtn.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    });
+    lockBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      toggleLock(item);
+    });
 
     const handles = document.createElement('div');
     handles.className = 'handles';
@@ -123,16 +267,17 @@
 
     img.draggable = false;
     img.alt = item.name;
-    el.append(img, tag, handles);
+    el.append(img, tag, lockBtn, handles);
     item.el = el;
     item.tag = tag;
+    item.lockBtn = lockBtn;
     canvas.appendChild(el);
     setTimeout(() => el.classList.remove('enter'), 420);
 
     state.items.push(item);
 
     if (!state.userModified) {
-      rebuildDefault();
+      rebuildDefault(false);
     } else {
       let target = null;
       for (const r of state.rows) {
@@ -147,9 +292,8 @@
         item.weight = 1;
         target.items.push(item);
       } else {
-        const others = target.items;
-        const mean = others.length
-          ? others.reduce((s, i) => s + i.weight, 0) / others.length
+        const mean = target.items.length
+          ? target.items.reduce((s, i) => s + i.weight, 0) / target.items.length
           : 1;
         item.weight = mean;
         target.items.push(item);
@@ -193,7 +337,7 @@
     state.items.splice(state.items.indexOf(item), 1);
     item.el.remove();
     if (state.selected === item) state.selected = null;
-    if (!state.userModified) rebuildDefault();
+    if (!state.userModified) rebuildDefault(false);
     layout(true);
   }
 
@@ -211,6 +355,25 @@
   }
 
   /* ---------------------------------------------------------
+     Lock
+     --------------------------------------------------------- */
+
+  function toggleLock(item) {
+    item.locked = !item.locked;
+    if (item.locked) {
+      const w = item._w || 0;
+      const h = item._h || 0;
+      item.lockAR = (h > 1e-6 && w > 1e-6) ? (w / h) * CAR : (item.ar || 1);
+      toast('PROPORTIONS LOCKED — THIS FRAME HOLDS ITS SHAPE');
+    } else {
+      toast('PROPORTIONS UNLOCKED');
+    }
+    state.userModified = true;
+    select(item);
+    layout(true);
+  }
+
+  /* ---------------------------------------------------------
      Selection + HUD
      --------------------------------------------------------- */
 
@@ -223,12 +386,25 @@
     const sel = state.selected;
     for (const it of state.items) {
       it.el.classList.toggle('selected', it === sel);
+      it.el.classList.toggle('locked', !!it.locked);
+      if (it.lockBtn) it.lockBtn.setAttribute('aria-pressed', it.locked ? 'true' : 'false');
     }
     if (!sel) return;
 
     const row = rowOf(sel);
-    const canX = row.items.length > 1;
-    const canY = state.rows.length > 1;
+    let canX;
+    let canY;
+    if (state.whitespace) {
+      canX = true;
+      canY = true;
+    } else if (sel.locked) {
+      canX = state.rows.length > 1 || row.items.length > 1;
+      canY = state.rows.length > 1 || row.items.length > 1;
+    } else {
+      canX = row.items.length > 1;
+      canY = state.rows.length > 1;
+    }
+
     sel.el.querySelectorAll('.h').forEach(h => {
       const d = h.dataset.dir;
       const usesX = d.includes('e') || d.includes('w');
@@ -242,7 +418,8 @@
     hudImages.textContent = pad(state.items.length);
     hudRows.textContent = pad(state.rows.length);
     if (state.selected) {
-      hudSelected.textContent = state.selected.name;
+      const label = state.selected.name + (state.selected.locked ? ' · LOCKED' : '');
+      hudSelected.textContent = label;
       hudSelected.title = state.selected.name;
     } else {
       hudSelected.textContent = '—';
@@ -283,21 +460,39 @@
     const f = fractions().find(x => x.item === item);
     const row = rowOf(item);
     canvas.classList.remove('animate');
+
+    const totalH0 = state.rows.reduce((s, r) => s + r.weight, 0) || 1;
+    let lockedSum0 = 0;
+    let freeSum0 = 0;
+    let freeCount = 0;
+    for (const i of row.items) {
+      if (i.locked) lockedSum0 += i.lockAR * f.h / CAR;
+      else { freeSum0 += i.weight; freeCount++; }
+    }
+
     gesture = {
       type: 'resize',
       dir,
       x0: e.clientX,
       y0: e.clientY,
-      w0: f.w * cr.width,
-      h0: f.h * cr.height,
-      cw: cr.width,
-      ch: cr.height,
+      cw: Math.max(cr.width, 1),
+      ch: Math.max(cr.height, 1),
+      w0: f.w,
+      h0: f.h,
       weight0: item.weight,
       sumW0: row.items.reduce((s, i) => s + i.weight, 0),
+      lockedSum0,
+      freeSum0,
+      freeCount,
       rowWeight0: row.weight,
-      totalH0: state.rows.reduce((s, r) => s + r.weight, 0),
+      totalH0,
       count: row.items.length,
       rowCount: state.rows.length,
+      minFX: MIN / Math.max(cr.width, 1),
+      minFY: MIN / Math.max(cr.height, 1),
+      lockAR: item.lockAR || item.ar,
+      locked: item.locked,
+      ws: state.whitespace,
       row,
       item
     };
@@ -307,31 +502,56 @@
   function onResizeMove(e) {
     const g = gesture;
     if (!g || g.type !== 'resize') return;
-    const dx = e.clientX - g.x0;
-    const dy = e.clientY - g.y0;
-    const dir = g.dir;
-    let changed = false;
 
-    if (dir.includes('e') || dir.includes('w')) {
-      const dw = dir.includes('e') ? dx : -dx;
-      const maxW = g.cw - MIN * (g.count - 1);
-      const newW = clamp(g.w0 + dw, MIN, Math.max(MIN, maxW));
-      g.item.weight = (newW / g.cw) * g.sumW0;
-      changed = true;
+    const rawX = (e.clientX - g.x0) / g.cw;
+    const rawY = (e.clientY - g.y0) / g.ch;
+    const horiz = g.dir.includes('e') || g.dir.includes('w');
+    const vert = g.dir.includes('n') || g.dir.includes('s');
+    const dw = horiz ? (g.dir.includes('e') ? rawX : -rawX) : 0;
+    const dh = vert ? (g.dir.includes('s') ? rawY : -rawY) : 0;
+
+    const maxHFrac = Math.max(g.minFY, 1 - g.minFY * (g.rowCount - 1));
+    const maxWFrac = Math.max(g.minFX, 1 - g.minFX * (g.count - 1));
+    const setRowH = hf => {
+      g.row.weight = clamp(hf, g.minFY, maxHFrac) * g.totalH0;
+    };
+
+    if (g.ws) {
+      // white-space mode: dragging scales the whole row, all
+      // images keep their original proportions
+      const sw = g.w0 > 1e-6 ? (g.w0 + dw) / g.w0 : 1;
+      const sh = g.h0 > 1e-6 ? (g.h0 + dh) / g.h0 : 1;
+      const s = (horiz && vert) ? (sw + sh) / 2 : (horiz ? sw : sh);
+      setRowH(g.h0 * s);
+    } else if (g.locked) {
+      // locked frame: any drag resizes it proportionally
+      if (horiz && vert) {
+        const sw = g.w0 > 1e-6 ? (g.w0 + dw) / g.w0 : 1;
+        const sh = g.h0 > 1e-6 ? (g.h0 + dh) / g.h0 : 1;
+        setRowH(g.h0 * (sw + sh) / 2);
+      } else if (horiz) {
+        const newW = clamp(g.w0 + dw, g.minFX, maxWFrac);
+        const newH = newW * CAR / Math.max(g.lockAR, 1e-6);
+        setRowH(newH);
+      } else {
+        setRowH(g.h0 + dh);
+      }
+    } else {
+      // free frame in auto-fit mode
+      if (horiz) {
+        const newW = clamp(g.w0 + dw, g.minFX, maxWFrac);
+        if (g.freeCount > 0 && g.lockedSum0 < 1 - 1e-6) {
+          const freeTotal0 = Math.max(1e-6, 1 - g.lockedSum0);
+          g.item.weight = (newW / freeTotal0) * g.freeSum0;
+        } else {
+          g.item.weight = newW * g.sumW0;
+        }
+      }
+      if (vert) setRowH(g.h0 + dh);
     }
 
-    if (dir.includes('n') || dir.includes('s')) {
-      const dh = dir.includes('s') ? dy : -dy;
-      const maxH = g.ch - MIN * (g.rowCount - 1);
-      const newH = clamp(g.h0 + dh, MIN, Math.max(MIN, maxH));
-      g.row.weight = (newH / g.ch) * g.totalH0;
-      changed = true;
-    }
-
-    if (changed) {
-      state.userModified = true;
-      layout();
-    }
+    state.userModified = true;
+    layout();
   }
 
   function beginMove(item, e) {
@@ -466,15 +686,30 @@
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (!state.items.length) { toast('NO IMAGES YET'); return; }
-    rebuildDefault();
+    rebuildDefault(true);
     layout(true);
-    toast('GRID RESET — EQUAL SIZES');
+    toast('GRID RESET — EQUAL SIZES, LOCKS CLEARED');
   });
 
   gapRange.addEventListener('input', () => {
     state.gap = Number(gapRange.value);
     gapVal.textContent = state.gap + 'PX';
     canvas.style.setProperty('--gh', (state.gap / 2) + 'px');
+  });
+
+  wsCheck.addEventListener('change', () => {
+    state.whitespace = wsCheck.checked;
+    canvas.classList.toggle('ws', state.whitespace);
+    modeLabel.textContent = state.whitespace
+      ? 'MODE — WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)'
+      : 'MODE — AUTO-FIT (CROP TO FILL)';
+    if (state.whitespace) {
+      state.userModified = true;
+      toast('WHITE SPACE ON — ORIGINAL PROPORTIONS KEPT, NOTHING CROPPED');
+    } else {
+      toast('AUTO-FIT ON — IMAGES FILL THEIR FRAMES');
+    }
+    layout(true);
   });
 
   /* ---------------------------------------------------------
@@ -497,10 +732,10 @@
     const gapOut = state.gap * (EXPORT_W / displayW);
 
     for (const f of fractions()) {
-      let x = f.x * EXPORT_W + gapOut / 2;
-      let y = f.y * EXPORT_H + gapOut / 2;
-      let w = f.w * EXPORT_W - gapOut;
-      let h = f.h * EXPORT_H - gapOut;
+      const x = f.x * EXPORT_W + gapOut / 2;
+      const y = f.y * EXPORT_H + gapOut / 2;
+      const w = f.w * EXPORT_W - gapOut;
+      const h = f.h * EXPORT_H - gapOut;
       if (w < 1 || h < 1) continue;
 
       const im = f.item.img;
@@ -508,20 +743,25 @@
       const ih = im.naturalHeight || im.height;
       if (!iw || !ih) continue;
 
-      // cover-crop, matching CSS object-fit: cover
-      const targetAR = w / h;
-      const imgAR = iw / ih;
-      let sx = 0, sy = 0, sw = iw, sh = ih;
-      if (imgAR > targetAR) {
-        sh = ih;
-        sw = ih * targetAR;
-        sx = (iw - sw) / 2;
+      if (state.whitespace) {
+        // proportions already match — draw whole image, no crop
+        ctx.drawImage(im, x, y, w, h);
       } else {
-        sw = iw;
-        sh = iw / targetAR;
-        sy = (ih - sh) / 2;
+        // cover-crop, matching CSS object-fit: cover
+        const targetAR = w / h;
+        const imgAR = iw / ih;
+        let sx = 0, sy = 0, sw = iw, sh = ih;
+        if (imgAR > targetAR) {
+          sh = ih;
+          sw = ih * targetAR;
+          sx = (iw - sw) / 2;
+        } else {
+          sw = iw;
+          sh = iw / targetAR;
+          sy = (ih - sh) / 2;
+        }
+        ctx.drawImage(im, sx, sy, sw, sh, x, y, w, h);
       }
-      ctx.drawImage(im, sx, sy, sw, sh, x, y, w, h);
     }
 
     const a = document.createElement('a');

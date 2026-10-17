@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>COLLAGE CREW — Image Layout + Resize Console</title>
-<meta name="description" content="Drop, paste and resize images into a print-ready 16:9 collage. 100% local, nothing uploaded.">
+<meta name="description" content="Drop, paste and resize images into a print-ready 16:9 collage. Lock proportions, allow white space, export PNG. 100% local.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,11 +27,6 @@
     <button class="btn" id="resetBtn" type="button">RESET GRID</button>
     <button class="btn" id="deleteBtn" type="button">DELETE ✕</button>
     <button class="btn accent" id="downloadBtn" type="button">EXPORT PNG ↓</button>
-    <div class="gap">
-      <label for="gapRange">GAP</label>
-      <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
-      <span id="gapVal">0PX</span>
-    </div>
   </div>
 </header>
 
@@ -41,7 +36,8 @@
   <section class="board">
     <div class="frame">
       <div class="frame-label">
-        <span>CANVAS — 16:9</span>
+        <span>16:9 SHEET</span>
+        <span id="modeLabel">MODE — AUTO-FIT (CROP TO FILL)</span>
         <span>EXPORT 3200 × 1800</span>
       </div>
 
@@ -56,45 +52,66 @@
     </div>
 
     <div class="hintbar">
-      <span><b>DRAG BODY</b> SWAP POSITION</span>
+      <span><b>DRAG BODY</b> SWAP</span>
       <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
+      <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
-      <span class="local">● 100% LOCAL — NOTHING UPLOADED</span>
+      <span class="local">● 100% LOCAL</span>
     </div>
   </section>
-
-  <aside class="panel">
-    <div class="stat">
-      <span>IMAGES</span>
-      <strong id="hudImages">00</strong>
-    </div>
-    <div class="stat">
-      <span>ROWS</span>
-      <strong id="hudRows">00</strong>
-    </div>
-    <div class="stat sel">
-      <span>SELECTED</span>
-      <strong id="hudSelected" title="">—</strong>
-    </div>
-
-    <div class="block">
-      <h3>HOW IT WORKS</h3>
-      <ol>
-        <li>Add images — upload, paste or drop them on the sheet.</li>
-        <li>All images land at equal size on the white 16:9 canvas.</li>
-        <li>Click an image to reveal its 8 resize handles.</li>
-        <li>Drag a corner / edge — the images sharing its row or column shrink or grow so the sheet stays full.</li>
-        <li>Drag an image body onto another to swap them.</li>
-        <li>Export a print-ready PNG.</li>
-      </ol>
-    </div>
-
-    <div class="block">
-      <h3>DEFAULT GRID</h3>
-      <p>New images are distributed into an equal-size grid. Custom resizes are kept — new additions join the lightest row at the average size.</p>
-    </div>
-  </aside>
 </main>
+
+<section class="manual">
+  <div class="manual-inner">
+    <header class="manual-head">
+      <h2>MANUAL</h2>
+      <p>SCROLL GUIDE — EVERYTHING THE CONSOLE CAN DO</p>
+    </header>
+
+    <div class="manual-grid">
+      <div class="card span2">
+        <h3>QUICK START</h3>
+        <ol>
+          <li>Add images — upload, paste (⌘V / Ctrl+V) or drop them on the sheet.</li>
+          <li>All images land at equal size on the white 16:9 canvas; adding more shrinks the rest automatically.</li>
+          <li>Click an image to reveal its 8 resize handles and the lock icon (top-right).</li>
+          <li>Drag a corner or edge — images sharing its row or column shrink or grow so the sheet stays full.</li>
+          <li>Press the lock icon to freeze that image's proportions — it keeps its shape while everything around it changes.</li>
+          <li>Tick <b>ALLOW WHITE SPACE</b> in the bottom bar to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
+          <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>LOCK ICON</h3>
+        <p>Click an image → padlock appears top-right. Press it to lock: that frame keeps its exact proportions through every other resize, add, swap or grid change. Locked frames that no longer fit are given white space around them instead of being squashed. Press again to unlock.</p>
+      </div>
+
+      <div class="card">
+        <h3>WHITE SPACE MODE</h3>
+        <p>The checkbox at the bottom of the window. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. OFF = auto-fit layout crops images to fill their frames.</p>
+      </div>
+
+      <div class="card span2">
+        <h3>LIVE STATUS</h3>
+        <div class="stats-row">
+          <div class="stat">
+            <span>IMAGES</span>
+            <strong id="hudImages">00</strong>
+          </div>
+          <div class="stat">
+            <span>ROWS</span>
+            <strong id="hudRows">00</strong>
+          </div>
+          <div class="stat sel">
+            <span>SELECTED</span>
+            <strong id="hudSelected" title="">—</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <footer class="footer">
   <span>COLLAGE CREW</span>
@@ -103,6 +120,20 @@
   <span class="sep">//</span>
   <span>ALL PROCESSING STAYS IN YOUR BROWSER</span>
 </footer>
+
+<div class="dock">
+  <div class="dock-gap">
+    <label for="gapRange">GAP</label>
+    <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
+    <span id="gapVal">0PX</span>
+  </div>
+
+  <label class="dock-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
+    <input type="checkbox" id="wsCheck">
+    <span class="box" aria-hidden="true"></span>
+    <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
+  </label>
+</div>
 
 <div id="toast" class="toasts" aria-live="polite"></div>
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
