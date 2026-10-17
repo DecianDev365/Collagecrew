@@ -5,12 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>COLLAGE CREW — Image Layout + Resize Console</title>
 <meta name="description" content="Drop, paste and resize images into a print-ready 16:9 collage. Lock proportions, allow white space, export PNG. 100% local.">
+<meta name="theme-color" content="#0c0a09">
+<meta property="og:type" content="website">
+<meta property="og:title" content="COLLAGE CREW — Image Layout + Resize Console">
+<meta property="og:description" content="Build print-ready 16:9 collages in your browser. Resize, lock proportions, allow white space, export PNG. Nothing is uploaded.">
+<meta property="og:site_name" content="COLLAGE CREW">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23ff6a00'/%3E%3Ctext x='32' y='45' font-family='Arial Black,Arial,sans-serif' font-size='30' font-weight='900' text-anchor='middle' fill='%230c0a09'%3ECC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<a class="skip-link" href="#main">Skip to canvas</a>
 
 <header class="topbar">
   <div class="brand">
@@ -30,9 +38,7 @@
   </div>
 </header>
 
-<div class="hazard" aria-hidden="true"></div>
-
-<main class="stage">
+<main class="stage" id="main">
   <section class="board">
     <div class="frame">
       <div class="frame-label">
@@ -44,7 +50,7 @@
       <div id="canvas" class="canvas">
         <div id="empty" class="empty">
           <div class="empty-mark" aria-hidden="true"></div>
-          <h2>DROP IMAGES HERE</h2>
+          <h2>Drop images here</h2>
           <p>DRAG &amp; DROP · PASTE (⌘V / CTRL+V) · OR</p>
           <button class="btn accent" id="emptyBtn" type="button">SELECT FILES</button>
         </div>
@@ -56,21 +62,44 @@
       <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
+      <a class="mlink" href="#manual">MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
     </div>
   </section>
+
+  <aside class="side" aria-label="Live stats">
+    <div class="side-head">Live stats</div>
+    <div class="stats-wrap">
+      <div class="stat">
+        <span>IMAGES</span>
+        <strong id="hudImages">00</strong>
+      </div>
+      <div class="stat">
+        <span>ROWS</span>
+        <strong id="hudRows">00</strong>
+      </div>
+      <div class="stat">
+        <span>LOCKED</span>
+        <strong id="hudLocked">00</strong>
+      </div>
+      <div class="stat sel">
+        <span>SELECTED</span>
+        <strong id="hudSelected" title="">—</strong>
+      </div>
+    </div>
+  </aside>
 </main>
 
-<section class="manual">
+<section class="manual" id="manual">
   <div class="manual-inner">
     <header class="manual-head">
-      <h2>MANUAL</h2>
-      <p>SCROLL GUIDE — EVERYTHING THE CONSOLE CAN DO</p>
+      <h2>Manual</h2>
+      <p>A SCROLL GUIDE — EVERYTHING THE CONSOLE CAN DO</p>
     </header>
 
     <div class="manual-grid">
       <div class="card span2">
-        <h3>QUICK START</h3>
+        <h3>Quick start</h3>
         <ol>
           <li>Add images — upload, paste (⌘V / Ctrl+V) or drop them on the sheet.</li>
           <li>All images land at equal size on the white 16:9 canvas; adding more shrinks the rest automatically.</li>
@@ -83,42 +112,29 @@
       </div>
 
       <div class="card">
-        <h3>LOCK ICON</h3>
+        <h3>Lock icon</h3>
         <p>Click an image → padlock appears top-right. Press it to lock: that frame keeps its exact proportions through every other resize, add, swap or grid change. Locked frames that no longer fit are given white space around them instead of being squashed. Press again to unlock.</p>
       </div>
 
       <div class="card">
-        <h3>WHITE SPACE MODE</h3>
+        <h3>White space mode</h3>
         <p>The checkbox at the bottom of the window. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. OFF = auto-fit layout crops images to fill their frames.</p>
-      </div>
-
-      <div class="card span2">
-        <h3>LIVE STATUS</h3>
-        <div class="stats-row">
-          <div class="stat">
-            <span>IMAGES</span>
-            <strong id="hudImages">00</strong>
-          </div>
-          <div class="stat">
-            <span>ROWS</span>
-            <strong id="hudRows">00</strong>
-          </div>
-          <div class="stat sel">
-            <span>SELECTED</span>
-            <strong id="hudSelected" title="">—</strong>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </section>
 
 <footer class="footer">
-  <span>COLLAGE CREW</span>
-  <span class="sep">//</span>
-  <span>PRINT-READY COLLAGE TOOL</span>
-  <span class="sep">//</span>
-  <span>ALL PROCESSING STAYS IN YOUR BROWSER</span>
+  <div class="footer-strip">
+    <span>COLLAGE CREW</span>
+    <span class="sep">//</span>
+    <span>PRINT-READY COLLAGE TOOL</span>
+    <span class="sep">//</span>
+    <span>ALL PROCESSING STAYS IN YOUR BROWSER</span>
+  </div>
+  <div class="credit">
+    Built by <a href="https://github.com/DecianDev365" target="_blank" rel="noopener noreferrer">DecianDev365</a>
+  </div>
 </footer>
 
 <div class="dock">

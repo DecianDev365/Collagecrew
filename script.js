@@ -19,6 +19,7 @@
   const toastWrap = document.getElementById('toast');
   const hudImages = document.getElementById('hudImages');
   const hudRows = document.getElementById('hudRows');
+  const hudLocked = document.getElementById('hudLocked');
   const hudSelected = document.getElementById('hudSelected');
   const gapRange = document.getElementById('gapRange');
   const gapVal = document.getElementById('gapVal');
@@ -230,6 +231,9 @@
     const el = document.createElement('div');
     el.className = 'cell enter';
     el.dataset.id = String(item.id);
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', 'Image: ' + item.name);
 
     const tag = document.createElement('div');
     tag.className = 'tag';
@@ -417,6 +421,7 @@
   function updateHUD() {
     hudImages.textContent = pad(state.items.length);
     hudRows.textContent = pad(state.rows.length);
+    hudLocked.textContent = pad(state.items.filter(i => i.locked).length);
     if (state.selected) {
       const label = state.selected.name + (state.selected.locked ? ' · LOCKED' : '');
       hudSelected.textContent = label;
@@ -453,6 +458,15 @@
     } else {
       select(null);
     }
+  });
+
+  canvas.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const cell = e.target.closest && e.target.closest('.cell');
+    if (!cell) return;
+    e.preventDefault();
+    const item = state.items.find(i => i.id === Number(cell.dataset.id));
+    if (item) select(item);
   });
 
   function beginResize(item, dir, e) {
