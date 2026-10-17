@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COLLAGE CREW — Image Layout + Resize Console</title>
+<meta name="description" content="Drop, paste and resize images into a print-ready 16:9 collage. 100% local, nothing uploaded.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">CC</div>
+    <div class="names">
+      <h1>COLLAGE CREW</h1>
+      <p>IMAGE LAYOUT + RESIZE CONSOLE</p>
+    </div>
+  </div>
+
+  <div class="tools">
+    <button class="btn accent" id="uploadBtn" type="button">+ UPLOAD</button>
+    <button class="btn" id="pasteBtn" type="button">PASTE ⌘V</button>
+    <button class="btn" id="resetBtn" type="button">RESET GRID</button>
+    <button class="btn" id="deleteBtn" type="button">DELETE ✕</button>
+    <button class="btn accent" id="downloadBtn" type="button">EXPORT PNG ↓</button>
+    <div class="gap">
+      <label for="gapRange">GAP</label>
+      <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
+      <span id="gapVal">0PX</span>
+    </div>
+  </div>
+</header>
+
+<div class="hazard" aria-hidden="true"></div>
+
+<main class="stage">
+  <section class="board">
+    <div class="frame">
+      <div class="frame-label">
+        <span>CANVAS — 16:9</span>
+        <span>EXPORT 3200 × 1800</span>
+      </div>
+
+      <div id="canvas" class="canvas">
+        <div id="empty" class="empty">
+          <div class="empty-mark" aria-hidden="true"></div>
+          <h2>DROP IMAGES HERE</h2>
+          <p>DRAG &amp; DROP · PASTE (⌘V / CTRL+V) · OR</p>
+          <button class="btn accent" id="emptyBtn" type="button">SELECT FILES</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hintbar">
+      <span><b>DRAG BODY</b> SWAP POSITION</span>
+      <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
+      <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
+      <span class="local">● 100% LOCAL — NOTHING UPLOADED</span>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="stat">
+      <span>IMAGES</span>
+      <strong id="hudImages">00</strong>
+    </div>
+    <div class="stat">
+      <span>ROWS</span>
+      <strong id="hudRows">00</strong>
+    </div>
+    <div class="stat sel">
+      <span>SELECTED</span>
+      <strong id="hudSelected" title="">—</strong>
+    </div>
+
+    <div class="block">
+      <h3>HOW IT WORKS</h3>
+      <ol>
+        <li>Add images — upload, paste or drop them on the sheet.</li>
+        <li>All images land at equal size on the white 16:9 canvas.</li>
+        <li>Click an image to reveal its 8 resize handles.</li>
+        <li>Drag a corner / edge — the images sharing its row or column shrink or grow so the sheet stays full.</li>
+        <li>Drag an image body onto another to swap them.</li>
+        <li>Export a print-ready PNG.</li>
+      </ol>
+    </div>
+
+    <div class="block">
+      <h3>DEFAULT GRID</h3>
+      <p>New images are distributed into an equal-size grid. Custom resizes are kept — new additions join the lightest row at the average size.</p>
+    </div>
+  </aside>
+</main>
+
+<footer class="footer">
+  <span>COLLAGE CREW</span>
+  <span class="sep">//</span>
+  <span>PRINT-READY COLLAGE TOOL</span>
+  <span class="sep">//</span>
+  <span>ALL PROCESSING STAYS IN YOUR BROWSER</span>
+</footer>
+
+<div id="toast" class="toasts" aria-live="polite"></div>
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+<script src="script.js"></script>
+</body>
+</html>
