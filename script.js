@@ -45,6 +45,7 @@
   const pad = n => String(n).padStart(2, '0');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const rowOf = item => state.rows.find(r => r.items.includes(item));
+  const dispAR = it => (it.rot % 180 === 90) ? 1 / (it.ar || 1) : (it.ar || 1);
 
   /* ---------------------------------------------------------
      Layout solver
@@ -62,7 +63,7 @@
       // every image keeps its natural aspect: content width of a row
       // = sum(aspects) * h / canvasAR. Shrink rows that overflow.
       for (let r = 0; r < n; r++) {
-        const sumAr = rows[r].items.reduce((s, i) => s + i.ar, 0) || 1;
+        const sumAr = rows[r].items.reduce((s, i) => s + dispAR(i), 0) || 1;
         const contentW = sumAr * h[r] / CAR;
         if (contentW > 1) h[r] /= contentW;
       }
@@ -113,7 +114,7 @@
     const items = row.items;
 
     if (state.whitespace) {
-      const cells = items.map(i => ({ item: i, w: i.ar * hr / CAR }));
+      const cells = items.map(i => ({ item: i, w: dispAR(i) * hr / CAR }));
       const sum = cells.reduce((s, c) => s + c.w, 0);
       return { startX: Math.max(0, (1 - sum) / 2), cells };
     }
@@ -165,12 +166,16 @@
 
   function layout(animate) {
     const frs = fractions();
+    const cw = canvas.clientWidth || 1280;
+    const ch = canvas.clientHeight || 720;
     frs.forEach((f, i) => {
       const el = f.item.el;
       el.style.left = (f.x * 100) + '%';
       el.style.top = (f.y * 100) + '%';
       el.style.width = (f.w * 100) + '%';
       el.style.height = (f.h * 100) + '%';
+      el.style.setProperty('--cw', (f.w * cw).toFixed(1) + 'px');
+      el.style.setProperty('--ch', (f.h * ch).toFixed(1) + 'px');
       f.item._w = f.w;
       f.item._h = f.h;
       f.item.tag.textContent = pad(i + 1);
@@ -221,6 +226,7 @@
       weight: 1,
       locked: false,
       lockAR: 0,
+      rot: 0,
       ar: (img.naturalWidth && img.naturalHeight)
         ? img.naturalWidth / img.naturalHeight
         : 1,
@@ -260,6 +266,24 @@
       toggleLock(item);
     });
 
+    const rotBtn = document.createElement('button');
+    rotBtn.type = 'button';
+    rotBtn.className = 'rotbtn';
+    rotBtn.title = 'Rotate 90°';
+    rotBtn.setAttribute('aria-label', 'Rotate image 90 degrees');
+    rotBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<polyline points="23 4 23 10 17 10"/>' +
+      '<path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+    rotBtn.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    });
+    rotBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      rotateItem(item);
+    });
+
     const handles = document.createElement('div');
     handles.className = 'handles';
     for (const d of DIRS) {
@@ -269,9 +293,14 @@
       handles.appendChild(h);
     }
 
+    const clip = document.createElement('div');
+    clip.className = 'clip';
+    clip.appendChild(img);
+
     img.draggable = false;
     img.alt = item.name;
-    el.append(img, tag, lockBtn, handles);
+    el.append(clip, tag, lockBtn, rotBtn, handles);
+    el.dataset.r = '0';
     item.el = el;
     item.tag = tag;
     item.lockBtn = lockBtn;
@@ -367,12 +396,20 @@
     if (item.locked) {
       const w = item._w || 0;
       const h = item._h || 0;
-      item.lockAR = (h > 1e-6 && w > 1e-6) ? (w / h) * CAR : (item.ar || 1);
+      item.lockAR = (h > 1e-6 && w > 1e-6) ? (w / h) * CAR : dispAR(item);
       toast('PROPORTIONS LOCKED — THIS FRAME HOLDS ITS SHAPE');
     } else {
       toast('PROPORTIONS UNLOCKED');
     }
     state.userModified = true;
+    select(item);
+    layout(true);
+  }
+
+  function rotateItem(item) {
+    item.rot = ((item.rot || 0) + 90) % 360;
+    item.el.dataset.r = String(item.rot);
+    toast('ROTATED ' + item.rot + '°');
     select(item);
     layout(true);
   }
@@ -504,7 +541,7 @@
       rowCount: state.rows.length,
       minFX: MIN / Math.max(cr.width, 1),
       minFY: MIN / Math.max(cr.height, 1),
-      lockAR: item.lockAR || item.ar,
+      lockAR: item.lockAR || dispAR(item),
       locked: item.locked,
       ws: state.whitespace,
       row,
@@ -757,12 +794,21 @@
       const ih = im.naturalHeight || im.height;
       if (!iw || !ih) continue;
 
+      const deg = (f.item.rot || 0) % 360;
+      const swap = deg % 180 === 90;
+      const bw = swap ? h : w;
+      const bh = swap ? w : h;
+
+      ctx.save();
+      ctx.translate(x + w / 2, y + h / 2);
+      if (deg) ctx.rotate(deg * Math.PI / 180);
+
       if (state.whitespace) {
         // proportions already match — draw whole image, no crop
-        ctx.drawImage(im, x, y, w, h);
+        ctx.drawImage(im, -bw / 2, -bh / 2, bw, bh);
       } else {
         // cover-crop, matching CSS object-fit: cover
-        const targetAR = w / h;
+        const targetAR = bw / bh;
         const imgAR = iw / ih;
         let sx = 0, sy = 0, sw = iw, sh = ih;
         if (imgAR > targetAR) {
@@ -774,8 +820,9 @@
           sh = iw / targetAR;
           sy = (ih - sh) / 2;
         }
-        ctx.drawImage(im, sx, sy, sw, sh, x, y, w, h);
+        ctx.drawImage(im, sx, sy, sw, sh, -bw / 2, -bh / 2, bw, bh);
       }
+      ctx.restore();
     }
 
     const a = document.createElement('a');

@@ -32,7 +32,6 @@
   <div class="tools">
     <button class="btn accent" id="uploadBtn" type="button">+ UPLOAD</button>
     <button class="btn" id="pasteBtn" type="button">PASTE ⌘V</button>
-    <button class="btn" id="resetBtn" type="button">RESET GRID</button>
     <button class="btn" id="deleteBtn" type="button">DELETE ✕</button>
     <button class="btn accent" id="downloadBtn" type="button">EXPORT PNG ↓</button>
   </div>
@@ -61,13 +60,14 @@
       <span><b>DRAG BODY</b> SWAP</span>
       <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
+      <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
       <a class="mlink" href="#manual">MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
     </div>
   </section>
 
-  <aside class="side" aria-label="Live stats">
+  <aside class="side" aria-label="Live stats and controls">
     <div class="side-head">Live stats</div>
     <div class="stats-wrap">
       <div class="stat">
@@ -87,6 +87,25 @@
         <strong id="hudSelected" title="">—</strong>
       </div>
     </div>
+
+    <div class="side-head">Controls</div>
+    <div class="ctrls">
+      <button class="btn wide" id="resetBtn" type="button">RESET GRID</button>
+
+      <div class="ctrl-gap">
+        <div class="ctrl-gap-row">
+          <label for="gapRange">GAP</label>
+          <span id="gapVal">0PX</span>
+        </div>
+        <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
+      </div>
+
+      <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
+        <input type="checkbox" id="wsCheck">
+        <span class="box" aria-hidden="true"></span>
+        <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
+      </label>
+    </div>
   </aside>
 </main>
 
@@ -103,10 +122,12 @@
         <ol>
           <li>Add images — upload, paste (⌘V / Ctrl+V) or drop them on the sheet.</li>
           <li>All images land at equal size on the white 16:9 canvas; adding more shrinks the rest automatically.</li>
-          <li>Click an image to reveal its 8 resize handles and the lock icon (top-right).</li>
+          <li>Click an image to reveal its 8 resize handles plus the lock icon (top-right) and the rotate icon (below it).</li>
           <li>Drag a corner or edge — images sharing its row or column shrink or grow so the sheet stays full.</li>
           <li>Press the lock icon to freeze that image's proportions — it keeps its shape while everything around it changes.</li>
-          <li>Tick <b>ALLOW WHITE SPACE</b> in the bottom bar to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
+          <li>Press the rotate icon to turn the image 90° — press again to spin it through 180°, 270° and back to 0°.</li>
+          <li>Tick <b>ALLOW WHITE SPACE</b> in the side panel to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
+          <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
       </div>
@@ -117,8 +138,13 @@
       </div>
 
       <div class="card">
+        <h3>Rotate icon</h3>
+        <p>Click an image → the rotate icon appears under the padlock. Press it to turn the image 90° clockwise. In auto-fit mode the frame stays put and the image is re-cropped to fill it; in white-space mode the frame swaps to the new proportions. Keep pressing to spin through 180°, 270° and back to square one.</p>
+      </div>
+
+      <div class="card">
         <h3>White space mode</h3>
-        <p>The checkbox at the bottom of the window. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. OFF = auto-fit layout crops images to fill their frames.</p>
+        <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. OFF = auto-fit layout crops images to fill their frames.</p>
       </div>
     </div>
   </div>
@@ -136,20 +162,6 @@
     Built by <a href="https://github.com/DecianDev365" target="_blank" rel="noopener noreferrer">DecianDev365</a>
   </div>
 </footer>
-
-<div class="dock">
-  <div class="dock-gap">
-    <label for="gapRange">GAP</label>
-    <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
-    <span id="gapVal">0PX</span>
-  </div>
-
-  <label class="dock-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
-    <input type="checkbox" id="wsCheck">
-    <span class="box" aria-hidden="true"></span>
-    <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
-  </label>
-</div>
 
 <div id="toast" class="toasts" aria-live="polite"></div>
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
