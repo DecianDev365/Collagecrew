@@ -25,6 +25,10 @@
   const gapVal = document.getElementById('gapVal');
   const wsCheck = document.getElementById('wsCheck');
   const modeLabel = document.getElementById('modeLabel');
+  const bgInput = document.getElementById('bgInput');
+  const bgBtn = document.getElementById('bgBtn');
+  const bgClearBtn = document.getElementById('bgClearBtn');
+  const bgVal = document.getElementById('bgVal');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -39,7 +43,9 @@
     userModified: false,
     gap: 0,
     seq: 0,
-    whitespace: false
+    whitespace: false,
+    bgImg: null,
+    bgURL: null
   };
 
   const pad = n => String(n).padStart(2, '0');
@@ -870,6 +876,47 @@
   });
 
   /* ---------------------------------------------------------
+     Custom background
+     --------------------------------------------------------- */
+
+  bgBtn.addEventListener('click', () => bgInput.click());
+
+  bgInput.addEventListener('change', () => {
+    const f = bgInput.files && bgInput.files[0];
+    bgInput.value = '';
+    if (!f) return;
+    if (!f.type || !f.type.startsWith('image/')) { toast('NOT AN IMAGE FILE'); return; }
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = () => {
+      const oldURL = state.bgURL;
+      state.bgImg = im;
+      state.bgURL = url;
+      canvas.style.backgroundImage = 'url("' + url + '")';
+      canvas.classList.add('has-bg');
+      bgVal.textContent = f.name;
+      bgVal.title = f.name;
+      bgClearBtn.hidden = false;
+      if (oldURL) URL.revokeObjectURL(oldURL);
+      toast('BACKGROUND SET — SHOWS THROUGH WHITE SPACE + GAPS');
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); toast('COULD NOT LOAD BACKGROUND'); };
+    im.src = url;
+  });
+
+  bgClearBtn.addEventListener('click', () => {
+    if (state.bgURL) URL.revokeObjectURL(state.bgURL);
+    state.bgImg = null;
+    state.bgURL = null;
+    canvas.style.backgroundImage = '';
+    canvas.classList.remove('has-bg');
+    bgVal.textContent = 'NONE';
+    bgVal.title = '';
+    bgClearBtn.hidden = true;
+    toast('BACKGROUND CLEARED — BACK TO WHITE PAPER');
+  });
+
+  /* ---------------------------------------------------------
      Export
      --------------------------------------------------------- */
 
@@ -884,6 +931,17 @@
     const ctx = c.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+
+    if (state.bgImg) {
+      const bw = state.bgImg.naturalWidth || state.bgImg.width;
+      const bh = state.bgImg.naturalHeight || state.bgImg.height;
+      if (bw && bh) {
+        const s = Math.max(EXPORT_W / bw, EXPORT_H / bh);
+        const dw = bw * s;
+        const dh = bh * s;
+        ctx.drawImage(state.bgImg, (EXPORT_W - dw) / 2, (EXPORT_H - dh) / 2, dw, dh);
+      }
+    }
 
     const displayW = canvas.clientWidth || EXPORT_W;
     const gapOut = state.gap * (EXPORT_W / displayW);

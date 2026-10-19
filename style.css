@@ -200,6 +200,16 @@ body::after {
   box-shadow: var(--shadow-btn);
 }
 
+.btn.ghost {
+  background: transparent;
+  color: var(--dim);
+}
+
+.btn.ghost:hover {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
 /* ---------- stage (canvas + live stats sidebar) ---------- */
 
 .stage {
@@ -355,6 +365,31 @@ body::after {
 
 .ctrl-check:hover .txt { color: var(--orange); }
 
+/* custom canvas background */
+
+.ctrl-bg {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ctrl-bg-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ctrl-bg-row .btn { flex: 1; text-align: center; }
+
+.ctrl-bg-row .btn.ghost { flex: none; }
+
+#bgVal {
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
 .frame {
   position: relative;
   background: var(--bg-2);
@@ -415,6 +450,12 @@ body::after {
 }
 
 .canvas.drop-hot { outline: 3px dashed var(--orange); outline-offset: -8px; }
+
+.canvas.has-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 /* ---------- cells ---------- */
 

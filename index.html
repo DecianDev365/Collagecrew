@@ -106,6 +106,17 @@
         <span class="box" aria-hidden="true"></span>
         <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
       </label>
+
+      <div class="ctrl-bg">
+        <div class="ctrl-gap-row">
+          <label>BACKGROUND</label>
+          <span id="bgVal" title="">NONE</span>
+        </div>
+        <div class="ctrl-bg-row">
+          <button class="btn wide" id="bgBtn" type="button">+ SET BG IMAGE</button>
+          <button class="btn ghost" id="bgClearBtn" type="button" hidden>CLEAR ✕</button>
+        </div>
+      </div>
     </div>
   </aside>
 </main>
@@ -130,6 +141,7 @@
           <li>Tick <b>ALLOW WHITE SPACE</b> in the side panel to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
           <li>Still in white space mode, press an image's <b>crop icon</b> (under the rotate icon) to free that one frame — drag its handles to change its proportions and the image crops to fill, while pinned neighbours keep their original shapes.</li>
           <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
+          <li>Set a custom <b>BACKGROUND</b> in the side panel — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
       </div>
@@ -153,6 +165,11 @@
         <h3>White space mode</h3>
         <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
       </div>
+
+      <div class="card">
+        <h3>Custom background</h3>
+        <p><b>SET BG IMAGE</b> in the side panel puts your own picture behind the sheet. It fills the canvas cover-style, shows through white space, gaps and the empty drop zone, and is baked into the exported PNG. The filename appears next to the label — <b>CLEAR ✕</b> reverts to plain white paper. Like everything here, the file never leaves your browser.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -172,6 +189,7 @@
 
 <div id="toast" class="toasts" aria-live="polite"></div>
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
+<input type="file" id="bgInput" accept="image/*" hidden>
 
 <script src="script.js"></script>
 </body>
