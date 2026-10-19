@@ -467,6 +467,7 @@ body::after {
 }
 
 .canvas.ws .cell img { object-fit: contain; }
+.canvas.ws .cell.crop img { object-fit: cover; }
 
 .cell:hover { outline: 1px dashed rgba(255, 106, 0, .75); }
 
@@ -605,6 +606,49 @@ body::after {
 }
 
 .rotbtn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* crop button — only offered in white-space mode */
+
+.cropbtn {
+  position: absolute;
+  right: 0;
+  top: 52px;
+  z-index: 4;
+  display: none;
+  padding: 5px;
+  background: var(--ink);
+  border: 1px solid var(--orange);
+  color: var(--orange);
+  cursor: pointer;
+  line-height: 0;
+  transition: background .12s ease, color .12s ease, transform .12s ease;
+}
+
+.cropbtn:hover { background: var(--orange); color: var(--ink); transform: scale(1.06); }
+.cropbtn:active { transform: scale(.94); }
+
+.cropbtn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+.canvas.ws .cell:hover .cropbtn,
+.canvas.ws .cell.selected .cropbtn { display: block; }
+
+.canvas.ws .cell.crop .cropbtn {
+  display: block;
+  background: var(--orange);
+  color: var(--ink);
+  box-shadow: 0 0 14px rgba(255, 106, 0, .5);
+}
+
+.cropbtn svg {
   display: block;
   width: 14px;
   height: 14px;

@@ -61,6 +61,7 @@
       <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
+      <span><b>CROP ICON</b> CROP + FREE SHAPE (WHITE SPACE)</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
       <a class="mlink" href="#manual">MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
@@ -127,6 +128,7 @@
           <li>Press the lock icon to freeze that image's proportions — it keeps its shape while everything around it changes.</li>
           <li>Press the rotate icon to turn the image 90° — press again to spin it through 180°, 270° and back to 0°.</li>
           <li>Tick <b>ALLOW WHITE SPACE</b> in the side panel to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
+          <li>Still in white space mode, press an image's <b>crop icon</b> (under the rotate icon) to free that one frame — drag its handles to change its proportions and the image crops to fill, while pinned neighbours keep their original shapes.</li>
           <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
@@ -143,8 +145,13 @@
       </div>
 
       <div class="card">
+        <h3>Crop icon</h3>
+        <p>Only offered while <b>ALLOW WHITE SPACE</b> is ticked — click an image and the crop icon appears under the rotate icon. Press it to free that frame: drag its handles to change its proportions and the image is cover-cropped to fill instead of being squeezed to fit. Cropped frames trade width with each other, or borrow it from the row when pinned neighbours are around — pinned images never lose their original shape. Press again to snap back to the uncropped natural ratio.</p>
+      </div>
+
+      <div class="card">
         <h3>White space mode</h3>
-        <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. OFF = auto-fit layout crops images to fill their frames.</p>
+        <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
       </div>
     </div>
   </div>

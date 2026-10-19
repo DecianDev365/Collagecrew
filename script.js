@@ -60,12 +60,23 @@
     const h = rows.map(r => r.weight / totalW);
 
     if (state.whitespace) {
-      // every image keeps its natural aspect: content width of a row
-      // = sum(aspects) * h / canvasAR. Shrink rows that overflow.
+      // pinned images (crop OFF) keep their natural aspect: content width
+      // of a row = sum(aspects) * h / canvasAR. Cropped frames only need
+      // a min share. Shrink rows that overflow — leftover stays white.
+      const dispW = canvas.clientWidth || 1280;
+      const dispH = canvas.clientHeight || 720;
+      const minF = MIN / dispW;
+      const minH = MIN / dispH;
       for (let r = 0; r < n; r++) {
-        const sumAr = rows[r].items.reduce((s, i) => s + dispAR(i), 0) || 1;
-        const contentW = sumAr * h[r] / CAR;
-        if (contentW > 1) h[r] /= contentW;
+        let sumAr = 0;
+        let nFree = 0;
+        for (const i of rows[r].items) {
+          if (i.crop) nFree++;
+          else sumAr += dispAR(i);
+        }
+        if (!sumAr) continue;
+        const capacity = Math.max(minH, (1 - nFree * minF) * CAR / sumAr);
+        if (h[r] > capacity) h[r] = capacity;
       }
       // rows do NOT fill the canvas height here — leftover stays white
     } else {
@@ -114,9 +125,25 @@
     const items = row.items;
 
     if (state.whitespace) {
-      const cells = items.map(i => ({ item: i, w: dispAR(i) * hr / CAR }));
-      const sum = cells.reduce((s, c) => s + c.w, 0);
-      return { startX: Math.max(0, (1 - sum) / 2), cells };
+      const free = items.filter(i => i.crop);
+      const pinnedW = i => dispAR(i) * hr / CAR;
+
+      if (!free.length) {
+        // every image pinned to its natural aspect — centre the group
+        const cells = items.map(i => ({ item: i, w: pinnedW(i) }));
+        const sum = cells.reduce((s, c) => s + c.w, 0);
+        return { startX: Math.max(0, (1 - sum) / 2), cells };
+      }
+
+      // cropped frames share whatever width the pinned ones leave over
+      let pinnedSum = 0;
+      for (const i of items) if (!i.crop) pinnedSum += pinnedW(i);
+      const freeTotal = Math.max(0, 1 - pinnedSum);
+      const sumFreeW = free.reduce((s, i) => s + i.weight, 0) || 1;
+      const cells = items.map(i => i.crop
+        ? { item: i, w: freeTotal * (i.weight / sumFreeW) }
+        : { item: i, w: pinnedW(i) });
+      return { startX: 0, cells };
     }
 
     const lockedW = new Map();
@@ -227,6 +254,7 @@
       locked: false,
       lockAR: 0,
       rot: 0,
+      crop: false,
       ar: (img.naturalWidth && img.naturalHeight)
         ? img.naturalWidth / img.naturalHeight
         : 1,
@@ -284,6 +312,25 @@
       rotateItem(item);
     });
 
+    const cropBtn = document.createElement('button');
+    cropBtn.type = 'button';
+    cropBtn.className = 'cropbtn';
+    cropBtn.title = 'Crop / free proportions';
+    cropBtn.setAttribute('aria-label', 'Crop image and free its proportions');
+    cropBtn.setAttribute('aria-pressed', 'false');
+    cropBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/>' +
+      '<path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></svg>';
+    cropBtn.addEventListener('pointerdown', ev => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    });
+    cropBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      toggleCrop(item);
+    });
+
     const handles = document.createElement('div');
     handles.className = 'handles';
     for (const d of DIRS) {
@@ -299,11 +346,12 @@
 
     img.draggable = false;
     img.alt = item.name;
-    el.append(clip, tag, lockBtn, rotBtn, handles);
+    el.append(clip, tag, lockBtn, rotBtn, cropBtn, handles);
     el.dataset.r = '0';
     item.el = el;
     item.tag = tag;
     item.lockBtn = lockBtn;
+    item.cropBtn = cropBtn;
     canvas.appendChild(el);
     setTimeout(() => el.classList.remove('enter'), 420);
 
@@ -414,6 +462,16 @@
     layout(true);
   }
 
+  function toggleCrop(item) {
+    item.crop = !item.crop;
+    toast(item.crop
+      ? 'CROP ON — DRAG HANDLES TO RESHAPE, IMAGE CROPS TO FILL'
+      : 'CROP OFF — BACK TO ORIGINAL PROPORTIONS');
+    state.userModified = true;
+    select(item);
+    layout(true);
+  }
+
   /* ---------------------------------------------------------
      Selection + HUD
      --------------------------------------------------------- */
@@ -428,7 +486,9 @@
     for (const it of state.items) {
       it.el.classList.toggle('selected', it === sel);
       it.el.classList.toggle('locked', !!it.locked);
+      it.el.classList.toggle('crop', !!it.crop);
       if (it.lockBtn) it.lockBtn.setAttribute('aria-pressed', it.locked ? 'true' : 'false');
+      if (it.cropBtn) it.cropBtn.setAttribute('aria-pressed', it.crop ? 'true' : 'false');
     }
     if (!sel) return;
 
@@ -436,8 +496,22 @@
     let canX;
     let canY;
     if (state.whitespace) {
-      canX = true;
-      canY = true;
+      // row height only moves when there is more than one row; a cropped
+      // frame reshapes by trading width with other cropped frames, or by
+      // borrowing width from its row when pinned neighbours exist
+      let pinnedAR = 0;
+      let cropN = 0;
+      for (const i of row.items) {
+        if (i.crop) cropN++;
+        else pinnedAR += dispAR(i);
+      }
+      if (sel.crop) {
+        canX = cropN > 1 || (pinnedAR > 1e-6 && state.rows.length > 1);
+        canY = state.rows.length > 1;
+      } else {
+        canX = state.rows.length > 1;
+        canY = state.rows.length > 1;
+      }
     } else if (sel.locked) {
       canX = state.rows.length > 1 || row.items.length > 1;
       canY = state.rows.length > 1 || row.items.length > 1;
@@ -460,9 +534,12 @@
     hudRows.textContent = pad(state.rows.length);
     hudLocked.textContent = pad(state.items.filter(i => i.locked).length);
     if (state.selected) {
-      const label = state.selected.name + (state.selected.locked ? ' · LOCKED' : '');
-      hudSelected.textContent = label;
-      hudSelected.title = state.selected.name;
+      const s = state.selected;
+      const flags = [];
+      if (s.locked) flags.push('LOCKED');
+      if (s.crop && state.whitespace) flags.push('CROP');
+      hudSelected.textContent = s.name + (flags.length ? ' · ' + flags.join(' · ') : '');
+      hudSelected.title = s.name;
     } else {
       hudSelected.textContent = '—';
       hudSelected.title = '';
@@ -513,12 +590,21 @@
     canvas.classList.remove('animate');
 
     const totalH0 = state.rows.reduce((s, r) => s + r.weight, 0) || 1;
+    const wsMode = state.whitespace;
     let lockedSum0 = 0;
     let freeSum0 = 0;
     let freeCount = 0;
+    let pinnedAR0 = 0;
     for (const i of row.items) {
-      if (i.locked) lockedSum0 += i.lockAR * f.h / CAR;
-      else { freeSum0 += i.weight; freeCount++; }
+      const pinned = wsMode ? !i.crop : i.locked;
+      if (pinned) {
+        const ar = wsMode ? dispAR(i) : i.lockAR;
+        lockedSum0 += ar * f.h / CAR;
+        if (wsMode) pinnedAR0 += ar;
+      } else {
+        freeSum0 += i.weight;
+        freeCount++;
+      }
     }
 
     gesture = {
@@ -535,6 +621,7 @@
       lockedSum0,
       freeSum0,
       freeCount,
+      pinnedAR0,
       rowWeight0: row.weight,
       totalH0,
       count: row.items.length,
@@ -543,7 +630,8 @@
       minFY: MIN / Math.max(cr.height, 1),
       lockAR: item.lockAR || dispAR(item),
       locked: item.locked,
-      ws: state.whitespace,
+      ws: wsMode,
+      crop: wsMode && !!item.crop,
       row,
       item
     };
@@ -567,13 +655,31 @@
       g.row.weight = clamp(hf, g.minFY, maxHFrac) * g.totalH0;
     };
 
-    if (g.ws) {
+    if (g.ws && !g.crop) {
       // white-space mode: dragging scales the whole row, all
       // images keep their original proportions
       const sw = g.w0 > 1e-6 ? (g.w0 + dw) / g.w0 : 1;
       const sh = g.h0 > 1e-6 ? (g.h0 + dh) / g.h0 : 1;
       const s = (horiz && vert) ? (sw + sh) / 2 : (horiz ? sw : sh);
       setRowH(g.h0 * s);
+    } else if (g.ws) {
+      // white-space + crop: reshape this frame only
+      let targetH = null;
+      if (horiz && g.freeCount > 1) {
+        // trade width with the other cropped frames in the same row
+        const freeTotal0 = Math.max(1e-6, 1 - g.lockedSum0);
+        const maxShareW = Math.max(g.minFX, freeTotal0 - g.minFX * (g.freeCount - 1));
+        const newW = clamp(g.w0 + dw, g.minFX, maxShareW);
+        const others = Math.max(1e-6, g.freeSum0 - g.weight0);
+        const t = clamp(newW / freeTotal0, 1e-3, 1 - 1e-3);
+        g.item.weight = (t / (1 - t)) * others;
+      } else if (horiz && g.pinnedAR0 > 1e-6) {
+        // widen by shrinking the row — pinned neighbours keep their aspect
+        const newW = clamp(g.w0 + dw, g.minFX, maxWFrac);
+        targetH = (1 - newW) * CAR / g.pinnedAR0;
+      }
+      if (vert) targetH = (targetH === null ? g.h0 : targetH) + dh;
+      if (targetH !== null) setRowH(targetH);
     } else if (g.locked) {
       // locked frame: any drag resizes it proportionally
       if (horiz && vert) {
@@ -803,8 +909,8 @@
       ctx.translate(x + w / 2, y + h / 2);
       if (deg) ctx.rotate(deg * Math.PI / 180);
 
-      if (state.whitespace) {
-        // proportions already match — draw whole image, no crop
+      if (state.whitespace && !f.item.crop) {
+        // pinned — proportions already match, draw whole image, no crop
         ctx.drawImage(im, -bw / 2, -bh / 2, bw, bh);
       } else {
         // cover-crop, matching CSS object-fit: cover
