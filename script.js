@@ -29,6 +29,21 @@
   const bgBtn = document.getElementById('bgBtn');
   const bgClearBtn = document.getElementById('bgClearBtn');
   const bgVal = document.getElementById('bgVal');
+  const hudTexts = document.getElementById('hudTexts');
+  const textPanel = document.getElementById('textPanel');
+  const textPanelHead = document.getElementById('textPanelHead');
+  const textSelLabel = document.getElementById('textSelLabel');
+  const tText = document.getElementById('tText');
+  const tFont = document.getElementById('tFont');
+  const tSize = document.getElementById('tSize');
+  const tSizeVal = document.getElementById('tSizeVal');
+  const tBold = document.getElementById('tBold');
+  const tItal = document.getElementById('tItal');
+  const tGrad = document.getElementById('tGrad');
+  const tC1 = document.getElementById('tC1');
+  const tC2 = document.getElementById('tC2');
+  const tRemoveBtn = document.getElementById('tRemoveBtn');
+  const addTextBtn = document.getElementById('addTextBtn');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -39,7 +54,9 @@
   const state = {
     items: [],
     rows: [],
+    texts: [],
     selected: null,
+    selText: null,
     userModified: false,
     gap: 0,
     seq: 0,
@@ -213,6 +230,7 @@
       f.item._h = f.h;
       f.item.tag.textContent = pad(i + 1);
     });
+    state.texts.forEach(renderText);
     updateSelection();
     updateHUD();
     if (animate) {
@@ -442,6 +460,116 @@
   }
 
   /* ---------------------------------------------------------
+     Text boxes
+     --------------------------------------------------------- */
+
+  function renderText(t) {
+    const cw = canvas.clientWidth || 1280;
+    const ch = canvas.clientHeight || 720;
+    const el = t.el;
+    el.textContent = t.text;
+    el.setAttribute('aria-label', 'Text box: ' + String(t.text || '').replace(/\n/g, ' ').slice(0, 40));
+    el.style.fontFamily = t.family;
+    el.style.fontSize = (t.size * ch).toFixed(2) + 'px';
+    el.style.fontWeight = t.bold ? '700' : '400';
+    el.style.fontStyle = t.italic ? 'italic' : 'normal';
+    if (t.grad) {
+      el.style.backgroundImage = 'linear-gradient(90deg, ' + t.c1 + ', ' + t.c2 + ')';
+      el.style.webkitBackgroundClip = 'text';
+      el.style.backgroundClip = 'text';
+      el.style.color = 'transparent';
+      el.style.webkitTextFillColor = 'transparent';
+    } else {
+      el.style.backgroundImage = 'none';
+      el.style.color = t.c1;
+      el.style.webkitTextFillColor = t.c1;
+    }
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const fx = w < cw ? (w / 2) / cw : 0.5;
+    const fy = h < ch ? (h / 2) / ch : 0.5;
+    t.x = clamp(t.x, fx, 1 - fx);
+    t.y = clamp(t.y, fy, 1 - fy);
+    el.style.left = (t.x * 100) + '%';
+    el.style.top = (t.y * 100) + '%';
+  }
+
+  function addText() {
+    const t = {
+      id: ++state.seq,
+      text: 'YOUR TEXT',
+      family: "'Anton', sans-serif",
+      size: 0.07,
+      bold: false,
+      italic: false,
+      grad: false,
+      c1: '#ff6a00',
+      c2: '#ffffff',
+      x: 0.2 + Math.random() * 0.6,
+      y: 0.2 + Math.random() * 0.6
+    };
+    const el = document.createElement('div');
+    el.className = 'tbox enter';
+    el.dataset.id = String(t.id);
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    t.el = el;
+    canvas.appendChild(el);
+    setTimeout(() => el.classList.remove('enter'), 420);
+    state.texts.push(t);
+    renderText(t);
+    selectText(t);
+    textPanel.classList.remove('collapsed');
+    textPanelHead.setAttribute('aria-expanded', 'true');
+    toast('TEXT BOX ADDED — DRAG TO PLACE, STYLE IN SIDEBAR');
+  }
+
+  function removeText(t) {
+    const i = state.texts.indexOf(t);
+    if (i > -1) state.texts.splice(i, 1);
+    t.el.remove();
+    if (state.selText === t) {
+      state.selText = null;
+      updateTextSelection();
+    }
+    updateHUD();
+  }
+
+  function selectText(t) {
+    state.selText = t || null;
+    state.selected = null;
+    updateSelection();
+    updateTextSelection();
+    updateHUD();
+  }
+
+  function updateTextSelection() {
+    for (const t of state.texts) t.el.classList.toggle('selected', t === state.selText);
+    if (!state.selText) {
+      textPanel.hidden = true;
+      return;
+    }
+    textPanel.hidden = false;
+    syncTextPanel();
+  }
+
+  function syncTextPanel() {
+    const t = state.selText;
+    if (!t) return;
+    textSelLabel.textContent = 'BOX ' + pad(state.texts.indexOf(t) + 1);
+    tText.value = t.text;
+    tFont.value = t.family;
+    tSize.value = String(t.size * 100);
+    tSizeVal.textContent = tSize.value + '%';
+    tBold.setAttribute('aria-pressed', t.bold ? 'true' : 'false');
+    tItal.setAttribute('aria-pressed', t.italic ? 'true' : 'false');
+    tGrad.setAttribute('aria-pressed', t.grad ? 'true' : 'false');
+    tC1.value = t.c1;
+    tC2.value = t.c2;
+    tC2.disabled = !t.grad;
+  }
+
+  /* ---------------------------------------------------------
      Lock
      --------------------------------------------------------- */
 
@@ -484,6 +612,10 @@
 
   function select(item) {
     state.selected = item || null;
+    if (state.selText) {
+      state.selText = null;
+      updateTextSelection();
+    }
     updateSelection();
   }
 
@@ -539,7 +671,12 @@
     hudImages.textContent = pad(state.items.length);
     hudRows.textContent = pad(state.rows.length);
     hudLocked.textContent = pad(state.items.filter(i => i.locked).length);
-    if (state.selected) {
+    hudTexts.textContent = pad(state.texts.length);
+    if (state.selText) {
+      const s = state.selText;
+      hudSelected.textContent = 'TEXT · ' + String(s.text || '').replace(/\s+/g, ' ').slice(0, 16);
+      hudSelected.title = s.text;
+    } else if (state.selected) {
       const s = state.selected;
       const flags = [];
       if (s.locked) flags.push('LOCKED');
@@ -550,7 +687,7 @@
       hudSelected.textContent = '—';
       hudSelected.title = '';
     }
-    emptyState.hidden = state.items.length > 0;
+    emptyState.hidden = state.items.length > 0 || state.texts.length > 0;
   }
 
   /* ---------------------------------------------------------
@@ -561,6 +698,16 @@
 
   canvas.addEventListener('pointerdown', e => {
     if (e.button !== undefined && e.button !== 0) return;
+    const tboxEl = e.target.closest('.tbox');
+    if (tboxEl) {
+      const t = state.texts.find(x => x.id === Number(tboxEl.dataset.id));
+      if (t) {
+        selectText(t);
+        beginTextMove(t, e);
+      }
+      e.preventDefault();
+      return;
+    }
     const handle = e.target.closest('.h');
     const cell = e.target.closest('.cell');
     if (handle && cell) {
@@ -582,6 +729,13 @@
 
   canvas.addEventListener('keydown', e => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tboxEl = e.target.closest && e.target.closest('.tbox');
+    if (tboxEl) {
+      const t = state.texts.find(x => x.id === Number(tboxEl.dataset.id));
+      if (t) selectText(t);
+      e.preventDefault();
+      return;
+    }
     const cell = e.target.closest && e.target.closest('.cell');
     if (!cell) return;
     e.preventDefault();
@@ -756,9 +910,41 @@
     }
   }
 
+  function beginTextMove(t, e) {
+    gesture = {
+      type: 'text',
+      item: t,
+      x0: e.clientX,
+      y0: e.clientY,
+      x1: t.x,
+      y1: t.y,
+      cw: Math.max(canvas.clientWidth, 1),
+      ch: Math.max(canvas.clientHeight, 1),
+      active: false,
+      cell: t.el
+    };
+    window.addEventListener('pointermove', onTextMove);
+  }
+
+  function onTextMove(e) {
+    const g = gesture;
+    if (!g || g.type !== 'text') return;
+
+    if (!g.active) {
+      if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 5) return;
+      g.active = true;
+      g.cell.classList.add('dragging');
+    }
+
+    g.item.x = g.x1 + (e.clientX - g.x0) / g.cw;
+    g.item.y = g.y1 + (e.clientY - g.y0) / g.ch;
+    renderText(g.item);
+  }
+
   function endGesture() {
     window.removeEventListener('pointermove', onResizeMove);
     window.removeEventListener('pointermove', onMoveMove);
+    window.removeEventListener('pointermove', onTextMove);
     if (gesture && gesture.cell) gesture.cell.classList.remove('dragging');
     gesture = null;
   }
@@ -843,8 +1029,9 @@
      --------------------------------------------------------- */
 
   document.getElementById('deleteBtn').addEventListener('click', () => {
-    if (state.selected) removeItem(state.selected);
-    else toast('SELECT AN IMAGE FIRST');
+    if (state.selText) removeText(state.selText);
+    else if (state.selected) removeItem(state.selected);
+    else toast('SELECT AN IMAGE OR TEXT FIRST');
   });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
@@ -917,13 +1104,93 @@
   });
 
   /* ---------------------------------------------------------
+     Text controls (sidebar drawer)
+     --------------------------------------------------------- */
+
+  addTextBtn.addEventListener('click', addText);
+
+  textPanelHead.addEventListener('click', () => {
+    const collapsed = textPanel.classList.toggle('collapsed');
+    textPanelHead.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  });
+
+  tText.addEventListener('input', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.text = tText.value;
+    renderText(t);
+    updateHUD();
+  });
+
+  tFont.addEventListener('change', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.family = tFont.value;
+    renderText(t);
+  });
+
+  tSize.addEventListener('input', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.size = Number(tSize.value) / 100;
+    tSizeVal.textContent = tSize.value + '%';
+    renderText(t);
+  });
+
+  tBold.addEventListener('click', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.bold = !t.bold;
+    tBold.setAttribute('aria-pressed', t.bold ? 'true' : 'false');
+    renderText(t);
+  });
+
+  tItal.addEventListener('click', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.italic = !t.italic;
+    tItal.setAttribute('aria-pressed', t.italic ? 'true' : 'false');
+    renderText(t);
+  });
+
+  tGrad.addEventListener('click', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.grad = !t.grad;
+    tGrad.setAttribute('aria-pressed', t.grad ? 'true' : 'false');
+    tC2.disabled = !t.grad;
+    renderText(t);
+    toast(t.grad ? 'GRADIENT ON — 2-COLOUR FILL' : 'GRADIENT OFF — SOLID COLOUR');
+  });
+
+  tC1.addEventListener('input', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.c1 = tC1.value;
+    renderText(t);
+  });
+
+  tC2.addEventListener('input', () => {
+    const t = state.selText;
+    if (!t) return;
+    t.c2 = tC2.value;
+    renderText(t);
+  });
+
+  tRemoveBtn.addEventListener('click', () => {
+    if (!state.selText) return;
+    removeText(state.selText);
+    toast('TEXT BOX REMOVED');
+  });
+
+  /* ---------------------------------------------------------
      Export
      --------------------------------------------------------- */
 
   document.getElementById('downloadBtn').addEventListener('click', exportPNG);
 
   function exportPNG() {
-    if (!state.items.length) { toast('ADD IMAGES FIRST'); return; }
+    if (!state.items.length && !state.texts.length) { toast('ADD IMAGES OR TEXT FIRST'); return; }
 
     const c = document.createElement('canvas');
     c.width = EXPORT_W;
@@ -989,6 +1256,38 @@
       ctx.restore();
     }
 
+    for (const t of state.texts) {
+      const txt = String(t.text || '');
+      if (!txt.trim()) continue;
+      const px = t.size * EXPORT_H;
+      ctx.save();
+      ctx.font =
+        (t.italic ? 'italic ' : '') +
+        (t.bold ? '700 ' : '400 ') +
+        px.toFixed(2) + 'px ' + t.family;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const lines = txt.split('\n');
+      let maxW = 0;
+      for (const ln of lines) maxW = Math.max(maxW, ctx.measureText(ln).width);
+      const cx = t.x * EXPORT_W;
+      const cy = t.y * EXPORT_H;
+      const lh = px * 1.2;
+      const totalH = lines.length * lh;
+      if (t.grad) {
+        const g = ctx.createLinearGradient(cx - maxW / 2, 0, cx + maxW / 2, 0);
+        g.addColorStop(0, t.c1);
+        g.addColorStop(1, t.c2);
+        ctx.fillStyle = g;
+      } else {
+        ctx.fillStyle = t.c1;
+      }
+      lines.forEach((ln, i) => {
+        ctx.fillText(ln, cx, cy - totalH / 2 + (i + 0.5) * lh);
+      });
+      ctx.restore();
+    }
+
     const a = document.createElement('a');
     a.download = 'collage-crew-' + state.items.length + 'imgs.png';
     a.href = c.toDataURL('image/png');
@@ -1004,9 +1303,10 @@
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     if (e.key === 'Escape') select(null);
-    if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && (state.selected || state.selText)) {
       e.preventDefault();
-      removeItem(state.selected);
+      if (state.selText) removeText(state.selText);
+      else removeItem(state.selected);
     }
   });
 

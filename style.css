@@ -1039,6 +1039,207 @@ body::after {
   transition: opacity .28s ease, transform .28s ease;
 }
 
+/* ---------- text boxes ---------- */
+
+.tbox {
+  position: absolute;
+  z-index: 7;
+  transform: translate(-50%, -50%);
+  white-space: pre;
+  line-height: 1.2;
+  padding: 2px 6px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  color: var(--ink);
+  text-align: center;
+}
+
+.tbox:hover { outline: 1px dashed rgba(255, 106, 0, .75); }
+
+.tbox.selected {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.tbox:focus-visible { outline: 2px dashed var(--orange); outline-offset: 2px; }
+
+.tbox.dragging {
+  z-index: var(--z-drag);
+  cursor: grabbing;
+  outline: none;
+  animation: dragPulse .65s ease-in-out infinite alternate;
+}
+
+.tbox.enter { animation: cellIn .34s cubic-bezier(.2, .9, .25, 1.25); }
+
+/* text styling drawer (sidebar) */
+
+.ctrl-text {
+  grid-column: 1 / -1;
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ctrl-text-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .26em;
+  color: var(--orange);
+  cursor: pointer;
+}
+
+.ctrl-text-head .caret {
+  font-size: 12px;
+  line-height: 1;
+  transition: transform .2s ease;
+}
+
+.ctrl-text.collapsed .caret { transform: rotate(-90deg); }
+
+.ctrl-text-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  max-height: 620px;
+  opacity: 1;
+  transition: max-height .3s ease, opacity .2s ease;
+}
+
+.ctrl-text.collapsed .ctrl-text-body {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.t-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.t-field > label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .26em;
+  color: var(--dim);
+}
+
+.t-field textarea,
+.t-field select {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--txt);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 9px 10px;
+  transition: border-color .14s ease;
+}
+
+.t-field textarea { resize: vertical; min-height: 56px; }
+
+.t-field textarea:focus,
+.t-field select:focus { outline: none; border-color: var(--orange); }
+
+.t-field select {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ff6a00' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.t-field select option { background: var(--panel); color: var(--txt); }
+
+.ctrl-seg { display: flex; gap: 8px; }
+
+.seg {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  padding: 10px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, color .14s ease, background .14s ease;
+}
+
+.seg:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+  transform: translate(-1px, -1px);
+}
+
+.seg:active { transform: translate(0, 1px) scale(.985); }
+
+.seg[aria-pressed="true"] {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--ink);
+  box-shadow: var(--shadow-btn);
+}
+
+.ctrl-colors {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ctrl-colors .seg { flex: none; align-self: center; }
+
+.swatch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.swatch input[type="color"] {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.swatch input[type="color"]:hover { border-color: var(--orange); }
+.swatch input[type="color"]:disabled { opacity: .35; cursor: not-allowed; }
+
+.swatch em {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  color: var(--dim);
+  text-align: center;
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 1040px) {

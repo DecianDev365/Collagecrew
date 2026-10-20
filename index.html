@@ -62,6 +62,7 @@
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
       <span><b>CROP ICON</b> CROP + FREE SHAPE (WHITE SPACE)</span>
+      <span><b>+ TEXT BOX</b> STYLED TEXT · DRAG TO PLACE</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
       <a class="mlink" href="#manual">MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
@@ -82,6 +83,10 @@
       <div class="stat">
         <span>LOCKED</span>
         <strong id="hudLocked">00</strong>
+      </div>
+      <div class="stat">
+        <span>TEXTS</span>
+        <strong id="hudTexts">00</strong>
       </div>
       <div class="stat sel">
         <span>SELECTED</span>
@@ -106,6 +111,52 @@
         <span class="box" aria-hidden="true"></span>
         <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
       </label>
+
+      <button class="btn wide" id="addTextBtn" type="button">+ ADD TEXT BOX</button>
+
+      <div class="ctrl-text" id="textPanel" hidden>
+        <button class="ctrl-text-head" id="textPanelHead" type="button" aria-expanded="true" aria-controls="textPanelBody">
+          <span>TEXT STYLING — <span id="textSelLabel">—</span></span>
+          <span class="caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="ctrl-text-body" id="textPanelBody">
+          <div class="t-field">
+            <label for="tText">TEXT</label>
+            <textarea id="tText" rows="2" placeholder="TYPE YOUR TEXT…"></textarea>
+          </div>
+          <div class="t-field">
+            <label for="tFont">FONT</label>
+            <select id="tFont">
+              <option value="'Anton', sans-serif">ANTON</option>
+              <option value="'IBM Plex Mono', monospace">IBM PLEX MONO</option>
+              <option value="Georgia, serif">GEORGIA</option>
+              <option value="'Times New Roman', serif">TIMES NEW ROMAN</option>
+              <option value="Arial, Helvetica, sans-serif">ARIAL</option>
+              <option value="Impact, sans-serif">IMPACT</option>
+              <option value="'Courier New', monospace">COURIER NEW</option>
+              <option value="Verdana, sans-serif">VERDANA</option>
+              <option value="'Trebuchet MS', sans-serif">TREBUCHET MS</option>
+            </select>
+          </div>
+          <div class="ctrl-gap">
+            <div class="ctrl-gap-row">
+              <label for="tSize">SIZE</label>
+              <span id="tSizeVal">7%</span>
+            </div>
+            <input id="tSize" type="range" min="2" max="16" step="0.5" value="7">
+          </div>
+          <div class="ctrl-seg">
+            <button class="seg" id="tBold" type="button" aria-pressed="false">BOLD</button>
+            <button class="seg" id="tItal" type="button" aria-pressed="false">ITALIC</button>
+          </div>
+          <div class="ctrl-colors">
+            <label class="swatch"><input type="color" id="tC1" value="#ff6a00"><em>COLOR 1</em></label>
+            <button class="seg" id="tGrad" type="button" aria-pressed="false">GRADIENT</button>
+            <label class="swatch"><input type="color" id="tC2" value="#ffffff" disabled><em>COLOR 2</em></label>
+          </div>
+          <button class="btn wide ghost" id="tRemoveBtn" type="button">REMOVE TEXT ✕</button>
+        </div>
+      </div>
 
       <div class="ctrl-bg">
         <div class="ctrl-gap-row">
@@ -142,6 +193,7 @@
           <li>Still in white space mode, press an image's <b>crop icon</b> (under the rotate icon) to free that one frame — drag its handles to change its proportions and the image crops to fill, while pinned neighbours keep their original shapes.</li>
           <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
           <li>Set a custom <b>BACKGROUND</b> in the side panel — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
+          <li>Press <b>+ ADD TEXT BOX</b> to drop styled text onto the sheet at a random spot — write your copy in the drawer that opens, pick a font, colours or a 2-colour gradient, then drag the box wherever it belongs.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
       </div>
@@ -169,6 +221,11 @@
       <div class="card">
         <h3>Custom background</h3>
         <p><b>SET BG IMAGE</b> in the side panel puts your own picture behind the sheet. It fills the canvas cover-style, shows through white space, gaps and the empty drop zone, and is baked into the exported PNG. The filename appears next to the label — <b>CLEAR ✕</b> reverts to plain white paper. Like everything here, the file never leaves your browser.</p>
+      </div>
+
+      <div class="card">
+        <h3>Text boxes</h3>
+        <p>Press <b>+ ADD TEXT BOX</b> in the side panel — a text box lands at a random spot on the sheet and the <b>TEXT STYLING</b> drawer opens beside it. Type your words, pick a font and size, flip <b>BOLD</b> / <b>ITALIC</b>, and choose a solid colour or switch on <b>GRADIENT</b> for a two-colour fill. Drag the box anywhere on the sheet; click it again any time to reopen the drawer. <b>DEL</b> or <b>REMOVE TEXT</b> takes it off, and every text box is drawn into the exported PNG exactly as you see it.</p>
       </div>
     </div>
   </div>
