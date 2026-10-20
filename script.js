@@ -44,6 +44,7 @@
   const tC2 = document.getElementById('tC2');
   const tRemoveBtn = document.getElementById('tRemoveBtn');
   const addTextBtn = document.getElementById('addTextBtn');
+  const gridCheck = document.getElementById('gridCheck');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -61,6 +62,7 @@
     gap: 0,
     seq: 0,
     whitespace: false,
+    gridMode: true,
     bgImg: null,
     bgURL: null
   };
@@ -197,6 +199,13 @@
   }
 
   function fractions() {
+    if (!state.gridMode) {
+      return state.items.map(it => ({
+        item: it,
+        row: null,
+        x: it.fx, y: it.fy, w: it.fw, h: it.fh
+      }));
+    }
     const rows = state.rows;
     if (!rows.length) return [];
     const { h, T } = heightFractions();
@@ -226,6 +235,12 @@
       el.style.height = (f.h * 100) + '%';
       el.style.setProperty('--cw', (f.w * cw).toFixed(1) + 'px');
       el.style.setProperty('--ch', (f.h * ch).toFixed(1) + 'px');
+      if (!state.gridMode) {
+        f.item.fx = f.x;
+        f.item.fy = f.y;
+        f.item.fw = f.w;
+        f.item.fh = f.h;
+      }
       f.item._w = f.w;
       f.item._h = f.h;
       f.item.tag.textContent = pad(i + 1);
@@ -265,6 +280,58 @@
     state.userModified = false;
   }
 
+  function placeFree(item) {
+    const n = state.items.length || 1;
+    item.fw = clamp(0.3 - (n - 1) * 0.02, 0.14, 0.4);
+    item.fh = Math.min(item.fw * CAR / Math.max(dispAR(item), 1e-6), 1);
+    item.fx = clamp(0.05 + Math.random() * 0.7, 0, Math.max(0, 1 - item.fw));
+    item.fy = clamp(0.05 + Math.random() * 0.7, 0, Math.max(0, 1 - item.fh));
+  }
+
+  function setGridMode(on) {
+    if (on) {
+      state.gridMode = true;
+      canvas.classList.remove('free');
+      rebuildDefault(true);
+      layout(true);
+    } else {
+      seedFreeLayout();
+      canvas.classList.add('free');
+      layout(true);
+    }
+    gapRange.disabled = !on;
+    wsCheck.disabled = !on;
+    canvas.style.setProperty('--gh', (on ? state.gap / 2 : 0) + 'px');
+    updateModeLabel();
+  }
+
+  function updateModeLabel() {
+    if (!state.gridMode) {
+      modeLabel.textContent = 'MODE — FREE POSITION (DRAG ANYWHERE, NO GRID)';
+    } else if (state.whitespace) {
+      modeLabel.textContent = 'MODE — WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)';
+    } else {
+      modeLabel.textContent = 'MODE — AUTO-FIT (CROP TO FILL)';
+    }
+  }
+
+  function seedFreeLayout() {
+    const frs = fractions();
+    const n = state.items.length || 1;
+    const cw = canvas.clientWidth || 1280;
+    const ch = canvas.clientHeight || 720;
+    state.items.forEach((it, i) => {
+      const f = frs.find(x => x.item === it);
+      it.fx = f ? f.x : 0;
+      it.fy = f ? f.y : 0;
+      it.fw = f ? f.w : clamp(0.3 - (n - 1) * 0.02, 0.18, 0.45);
+      it.fh = f ? f.h : it.fw * CAR / Math.max(dispAR(it), 1e-6);
+      it._cwpx = it.fw * cw;
+      it._chpx = it.fh * ch;
+    });
+    state.gridMode = false;
+  }
+
   /* ---------------------------------------------------------
      Items
      --------------------------------------------------------- */
@@ -283,7 +350,11 @@
         ? img.naturalWidth / img.naturalHeight
         : 1,
       _w: 0,
-      _h: 0
+      _h: 0,
+      fx: 0,
+      fy: 0,
+      fw: 0,
+      fh: 0
     };
 
     const el = document.createElement('div');
@@ -381,6 +452,12 @@
 
     state.items.push(item);
 
+    if (!state.gridMode) {
+      placeFree(item);
+      layout(true);
+      return;
+    }
+
     if (!state.userModified) {
       rebuildDefault(false);
     } else {
@@ -442,7 +519,7 @@
     state.items.splice(state.items.indexOf(item), 1);
     item.el.remove();
     if (state.selected === item) state.selected = null;
-    if (!state.userModified) rebuildDefault(false);
+    if (state.gridMode && !state.userModified) rebuildDefault(false);
     layout(true);
   }
 
@@ -630,6 +707,11 @@
     }
     if (!sel) return;
 
+    if (!state.gridMode) {
+      sel.el.querySelectorAll('.h').forEach(h => h.classList.remove('off'));
+      return;
+    }
+
     const row = rowOf(sel);
     let canX;
     let canY;
@@ -746,8 +828,30 @@
   function beginResize(item, dir, e) {
     const cr = canvas.getBoundingClientRect();
     const f = fractions().find(x => x.item === item);
-    const row = rowOf(item);
     canvas.classList.remove('animate');
+
+    if (!state.gridMode) {
+      gesture = {
+        type: 'resize',
+        free: true,
+        dir,
+        x0: e.clientX,
+        y0: e.clientY,
+        cw: Math.max(cr.width, 1),
+        ch: Math.max(cr.height, 1),
+        x1: item.fx,
+        y1: item.fy,
+        w1: item.fw,
+        h1: item.fh,
+        minFX: MIN / Math.max(cr.width, 1),
+        minFY: MIN / Math.max(cr.height, 1),
+        item
+      };
+      window.addEventListener('pointermove', onResizeMove);
+      return;
+    }
+
+    const row = rowOf(item);
 
     const totalH0 = state.rows.reduce((s, r) => s + r.weight, 0) || 1;
     const wsMode = state.whitespace;
@@ -801,6 +905,38 @@
   function onResizeMove(e) {
     const g = gesture;
     if (!g || g.type !== 'resize') return;
+
+    if (g.free) {
+      // free position: resize the frame itself, no neighbours involved
+      const rawX = (e.clientX - g.x0) / g.cw;
+      const rawY = (e.clientY - g.y0) / g.ch;
+      const dir = g.dir;
+      const it = g.item;
+
+      let x1 = g.x1, y1 = g.y1, w1 = g.w1, h1 = g.h1;
+      if (dir.includes('e')) {
+        w1 = clamp(g.w1 + rawX, g.minFX, 1 - g.x1);
+      } else if (dir.includes('w')) {
+        const right = g.x1 + g.w1;
+        x1 = clamp(g.x1 + rawX, 0, right - g.minFX);
+        w1 = right - x1;
+      }
+      if (dir.includes('s')) {
+        h1 = clamp(g.h1 + rawY, g.minFY, 1 - g.y1);
+      } else if (dir.includes('n')) {
+        const bottom = g.y1 + g.h1;
+        y1 = clamp(g.y1 + rawY, 0, bottom - g.minFY);
+        h1 = bottom - y1;
+      }
+
+      it.fx = x1;
+      it.fy = y1;
+      it.fw = w1;
+      it.fh = h1;
+      state.userModified = true;
+      layout();
+      return;
+    }
 
     const rawX = (e.clientX - g.x0) / g.cw;
     const rawY = (e.clientY - g.y0) / g.ch;
@@ -877,6 +1013,8 @@
       item,
       x0: e.clientX,
       y0: e.clientY,
+      fx0: item.fx,
+      fy0: item.fy,
       active: false,
       cell: item.el,
       cr: canvas.getBoundingClientRect()
@@ -893,6 +1031,16 @@
       g.active = true;
       g.cell.classList.add('dragging');
       canvas.classList.remove('animate');
+    }
+
+    if (!state.gridMode) {
+      const cw = g.cr.width || 1;
+      const ch = g.cr.height || 1;
+      const it = g.item;
+      it.fx = clamp(g.fx0 + (e.clientX - g.x0) / cw, 0, Math.max(0, 1 - it.fw));
+      it.fy = clamp(g.fy0 + (e.clientY - g.y0) / ch, 0, Math.max(0, 1 - it.fh));
+      layout();
+      return;
     }
 
     const px = (e.clientX - g.cr.left) / g.cr.width;
@@ -1036,6 +1184,12 @@
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (!state.items.length) { toast('NO IMAGES YET'); return; }
+    if (!state.gridMode) {
+      state.items.forEach(placeFree);
+      layout(true);
+      toast('FREEDOM RESET — IMAGES RE-SCATTERED');
+      return;
+    }
     rebuildDefault(true);
     layout(true);
     toast('GRID RESET — EQUAL SIZES, LOCKS CLEARED');
@@ -1050,9 +1204,7 @@
   wsCheck.addEventListener('change', () => {
     state.whitespace = wsCheck.checked;
     canvas.classList.toggle('ws', state.whitespace);
-    modeLabel.textContent = state.whitespace
-      ? 'MODE — WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)'
-      : 'MODE — AUTO-FIT (CROP TO FILL)';
+    updateModeLabel();
     if (state.whitespace) {
       state.userModified = true;
       toast('WHITE SPACE ON — ORIGINAL PROPORTIONS KEPT, NOTHING CROPPED');
@@ -1060,6 +1212,14 @@
       toast('AUTO-FIT ON — IMAGES FILL THEIR FRAMES');
     }
     layout(true);
+  });
+
+  gridCheck.addEventListener('change', () => {
+    setGridMode(gridCheck.checked);
+    document.getElementById('resetBtn').textContent = state.gridMode ? 'RESET GRID' : 'RE-SCATTER';
+    toast(state.gridMode
+      ? 'GRID ON — IMAGES SNAP TO THE AUTO LAYOUT'
+      : 'GRID OFF — DRAG IMAGES ANYWHERE, RESIZE FREELY');
   });
 
   /* ---------------------------------------------------------
@@ -1211,7 +1371,7 @@
     }
 
     const displayW = canvas.clientWidth || EXPORT_W;
-    const gapOut = state.gap * (EXPORT_W / displayW);
+    const gapOut = state.gridMode ? state.gap * (EXPORT_W / displayW) : 0;
 
     for (const f of fractions()) {
       const x = f.x * EXPORT_W + gapOut / 2;
@@ -1234,7 +1394,7 @@
       ctx.translate(x + w / 2, y + h / 2);
       if (deg) ctx.rotate(deg * Math.PI / 180);
 
-      if (state.whitespace && !f.item.crop) {
+      if (state.gridMode && state.whitespace && !f.item.crop) {
         // pinned — proportions already match, draw whole image, no crop
         ctx.drawImage(im, -bw / 2, -bh / 2, bw, bh);
       } else {

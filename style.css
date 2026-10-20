@@ -307,6 +307,11 @@ body::after {
   cursor: pointer;
 }
 
+.ctrl-gap input[type="range"]:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
 .ctrl-check {
   display: flex;
   align-items: flex-start;
@@ -509,6 +514,12 @@ body::after {
 
 .canvas.ws .cell img { object-fit: contain; }
 .canvas.ws .cell.crop img { object-fit: cover; }
+
+/* free position mode — images float anywhere, cover their own frame */
+.canvas.free .cell { cursor: grab; }
+.canvas.free .cell img { object-fit: cover; }
+.canvas.free .lockbtn,
+.canvas.free .cropbtn { display: none !important; }
 
 .cell:hover { outline: 1px dashed rgba(255, 106, 0, .75); }
 

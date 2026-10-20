@@ -62,6 +62,7 @@
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
       <span><b>CROP ICON</b> CROP + FREE SHAPE (WHITE SPACE)</span>
+      <span><b>GRID OFF</b> DRAG IMAGE ANYWHERE (<b>CORNER</b> RESIZE)</span>
       <span><b>+ TEXT BOX</b> STYLED TEXT · DRAG TO PLACE</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
       <a class="mlink" href="#manual">MANUAL ↓</a>
@@ -97,6 +98,12 @@
     <div class="side-head">Controls</div>
     <div class="ctrls">
       <button class="btn wide" id="resetBtn" type="button">RESET GRID</button>
+
+      <label class="ctrl-check" for="gridCheck" title="ON = images snap into the justified grid. OFF = free position, drag each image anywhere, size it freely with the corner handles.">
+        <input type="checkbox" id="gridCheck" checked>
+        <span class="box" aria-hidden="true"></span>
+        <span class="txt">ENABLE GRID — SNAP IMAGES INTO THE AUTO LAYOUT</span>
+      </label>
 
       <div class="ctrl-gap">
         <div class="ctrl-gap-row">
@@ -194,6 +201,7 @@
           <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
           <li>Set a custom <b>BACKGROUND</b> in the side panel — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
           <li>Press <b>+ ADD TEXT BOX</b> to drop styled text onto the sheet at a random spot — write your copy in the drawer that opens, pick a font, colours or a 2-colour gradient, then drag the box wherever it belongs.</li>
+          <li>Untick <b>ENABLE GRID</b> to place images freely — drag each one anywhere on the sheet and size it with its corner handles; tick it again to snap everything back to the grid.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
       </div>
@@ -216,6 +224,11 @@
       <div class="card">
         <h3>White space mode</h3>
         <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
+      </div>
+
+      <div class="card">
+        <h3>Grid mode</h3>
+        <p>The <b>ENABLE GRID</b> checkbox in the side panel is on by default. ON = images snap into the justified auto-layout — rows and columns share the sheet and neighbours resize together. OFF = free position: every image floats wherever you drag it, and the corner / edge handles resize it on its own without moving the others. Untick it any time to start composing off-grid, or tick it again to snap everything back.</p>
       </div>
 
       <div class="card">
