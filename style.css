@@ -262,12 +262,14 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 
 .stats-wrap + .side-head { margin-top: 18px; }
 
+.ctrls + .side-head { margin-top: 10px; }
+
 /* sidebar tabs: BASIC | ADVANCED OPTIONS */
 
 .side-tabs {
   display: flex;
   gap: 8px;
-  margin: 18px 0 0;
+  margin: 0 0 0;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
 }
@@ -299,6 +301,12 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 .side-panel { padding-top: 4px; }
 
 .side-panel .side-head:first-child { margin-top: 14px; }
+
+/* dimension read-out row inside the BASIC panel */
+
+.ctrl-num + .ctrl-num { margin-top: 2px; }
+
+#selDimsVal { letter-spacing: .04em; }
 
 /* small divider label inside .ctrls */
 

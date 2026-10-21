@@ -72,36 +72,53 @@
   </section>
 
   <aside class="side" aria-label="Live stats and controls">
-    <div class="side-head">Live stats</div>
-    <div class="stats-wrap">
-      <div class="stat">
-        <span>IMAGES</span>
-        <strong id="hudImages">00</strong>
-      </div>
-      <div class="stat">
-        <span>ROWS</span>
-        <strong id="hudRows">00</strong>
-      </div>
-      <div class="stat">
-        <span>LOCKED</span>
-        <strong id="hudLocked">00</strong>
-      </div>
-      <div class="stat">
-        <span>TEXTS</span>
-        <strong id="hudTexts">00</strong>
-      </div>
-      <div class="stat sel">
-        <span>SELECTED</span>
-        <strong id="hudSelected" title="">—</strong>
-      </div>
-    </div>
-
     <div class="side-tabs" role="tablist" aria-label="Sidebar sections">
       <button class="side-tab" id="tabBasic" type="button" role="tab" aria-selected="true" aria-controls="panelBasic">BASIC</button>
       <button class="side-tab" id="tabAdv" type="button" role="tab" aria-selected="false" aria-controls="panelAdv">ADVANCED OPTIONS</button>
     </div>
 
     <div class="side-panel" id="panelBasic" role="tabpanel" aria-labelledby="tabBasic">
+      <div class="side-head">Live stats</div>
+      <div class="stats-wrap">
+        <div class="stat">
+          <span>IMAGES</span>
+          <strong id="hudImages">00</strong>
+        </div>
+        <div class="stat">
+          <span>ROWS</span>
+          <strong id="hudRows">00</strong>
+        </div>
+        <div class="stat">
+          <span>LOCKED</span>
+          <strong id="hudLocked">00</strong>
+        </div>
+        <div class="stat">
+          <span>TEXTS</span>
+          <strong id="hudTexts">00</strong>
+        </div>
+        <div class="stat sel">
+          <span>SELECTED</span>
+          <strong id="hudSelected" title="">—</strong>
+        </div>
+      </div>
+
+      <div class="side-head">Dimensions</div>
+      <div class="ctrls">
+        <div class="ctrl-num">
+          <div class="ctrl-gap-row">
+            <label for="sheetCm">SHEET WIDTH (CM)</label>
+            <span id="sheetCmHint">16:9</span>
+          </div>
+          <input id="sheetCm" type="number" min="1" max="500" step="0.5" value="84" inputmode="decimal">
+        </div>
+        <div class="ctrl-num">
+          <div class="ctrl-gap-row">
+            <label>SELECTED SIZE</label>
+            <span id="selDimsVal">—</span>
+          </div>
+        </div>
+      </div>
+
       <div class="side-head">Controls</div>
       <div class="ctrls">
         <button class="btn wide" id="resetBtn" type="button">RESET GRID</button>
@@ -112,14 +129,6 @@
             <span id="gapVal">0PX</span>
           </div>
           <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
-        </div>
-
-        <div class="ctrl-num">
-          <div class="ctrl-gap-row">
-            <label for="sheetCm">SHEET WIDTH (CM)</label>
-            <span id="sheetCmHint">16:9</span>
-          </div>
-          <input id="sheetCm" type="number" min="1" max="500" step="0.5" value="84" inputmode="decimal">
         </div>
 
         <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">

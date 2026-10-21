@@ -52,6 +52,7 @@
   const modeFreeBtn = document.getElementById('modeFreeBtn');
   const adjCheck = document.getElementById('adjCheck');
   const sheetCmEl = document.getElementById('sheetCm');
+  const selDimsVal = document.getElementById('selDimsVal');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -834,6 +835,7 @@
       const s = state.selText;
       hudSelected.textContent = 'TEXT · ' + String(s.text || '').replace(/\s+/g, ' ').slice(0, 16);
       hudSelected.title = s.text;
+      if (selDimsVal) selDimsVal.textContent = '—';
     } else if (state.selected) {
       const s = state.selected;
       const flags = [];
@@ -846,9 +848,11 @@
         (flags.length ? ' · ' + flags.join(' · ') : '');
       hudSelected.title =
         s.name + ' — ' + wCm.toFixed(1) + ' × ' + hCm.toFixed(1) + ' cm';
+      if (selDimsVal) selDimsVal.textContent = fmtCm(wCm) + ' × ' + fmtCm(hCm);
     } else {
       hudSelected.textContent = '—';
       hudSelected.title = '';
+      if (selDimsVal) selDimsVal.textContent = '—';
     }
     emptyState.hidden = state.items.length > 0 || state.texts.length > 0;
   }
