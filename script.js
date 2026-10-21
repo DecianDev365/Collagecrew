@@ -51,12 +51,14 @@
   const modeGridBtn = document.getElementById('modeGridBtn');
   const modeFreeBtn = document.getElementById('modeFreeBtn');
   const adjCheck = document.getElementById('adjCheck');
+  const sheetCmEl = document.getElementById('sheetCm');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
   const EXPORT_W = 3200;
   const EXPORT_H = 1800;
   const CAR = 16 / 9;           // canvas aspect ratio (w / h)
+  const SHEET_CM_DEFAULT = 84;  // sheet width in cm at 300 DPI (3200 px)
 
   const state = {
     items: [],
@@ -70,12 +72,18 @@
     whitespace: false,
     gridMode: true,
     autoAdjust: true,
+    sheetCm: SHEET_CM_DEFAULT,
     bgImg: null,
     bgURL: null
   };
 
   const pad = n => String(n).padStart(2, '0');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  // physical size read-out — the 16:9 canvas maps to sheetCm x (sheetCm / CAR)
+  const cmW = wFrac => wFrac * state.sheetCm;
+  const cmH = hFrac => hFrac * state.sheetCm / CAR;
+  const fmtCm = v => (v < 10 ? v.toFixed(1) : String(Math.round(v))) + ' CM';
   const rowOf = item => state.rows.find(r => r.items.includes(item));
   const dispAR = it => (it.rot % 180 === 90) ? 1 / (it.ar || 1) : (it.ar || 1);
 
@@ -261,6 +269,11 @@
       f.item.el.classList.toggle('solo',
         state.gridMode && !state.autoAdjust && !!f.item.ov);
       f.item.tag.textContent = pad(i + 1);
+      if (f.item.dims) {
+        f.item.dims.textContent =
+          fmtCm(cmW(f.w)) + ' × ' + fmtCm(cmH(f.h));
+        f.item.el.classList.toggle('dims-top', f.y + f.h > 0.94);
+      }
     });
     state.texts.forEach(renderText);
     updateSelection();
@@ -421,6 +434,10 @@
     const tag = document.createElement('div');
     tag.className = 'tag';
 
+    const dims = document.createElement('div');
+    dims.className = 'dims';
+    dims.setAttribute('aria-hidden', 'true');
+
     const lockBtn = document.createElement('button');
     lockBtn.type = 'button';
     lockBtn.className = 'lockbtn';
@@ -495,10 +512,11 @@
 
     img.draggable = false;
     img.alt = item.name;
-    el.append(clip, tag, lockBtn, rotBtn, cropBtn, handles);
+    el.append(clip, tag, dims, lockBtn, rotBtn, cropBtn, handles);
     el.dataset.r = '0';
     item.el = el;
     item.tag = tag;
+    item.dims = dims;
     item.lockBtn = lockBtn;
     item.cropBtn = cropBtn;
     canvas.appendChild(el);
@@ -821,8 +839,13 @@
       const flags = [];
       if (s.locked) flags.push('LOCKED');
       if (s.crop && state.whitespace) flags.push('CROP');
-      hudSelected.textContent = s.name + (flags.length ? ' · ' + flags.join(' · ') : '');
-      hudSelected.title = s.name;
+      const wCm = cmW(s._w || 0);
+      const hCm = cmH(s._h || 0);
+      hudSelected.textContent =
+        s.name + ' · ' + fmtCm(wCm) + ' × ' + fmtCm(hCm) +
+        (flags.length ? ' · ' + flags.join(' · ') : '');
+      hudSelected.title =
+        s.name + ' — ' + wCm.toFixed(1) + ' × ' + hCm.toFixed(1) + ' cm';
     } else {
       hudSelected.textContent = '—';
       hudSelected.title = '';
@@ -1306,6 +1329,23 @@
     state.gap = Number(gapRange.value);
     gapVal.textContent = state.gap + 'PX';
     canvas.style.setProperty('--gh', (state.gap / 2) + 'px');
+  });
+
+  sheetCmEl.addEventListener('input', () => {
+    const v = Number(sheetCmEl.value);
+    if (v > 0) {
+      state.sheetCm = v;
+      layout();
+      updateHUD();
+    }
+  });
+
+  sheetCmEl.addEventListener('blur', () => {
+    const v = Number(sheetCmEl.value);
+    state.sheetCm = v > 0 ? v : SHEET_CM_DEFAULT;
+    sheetCmEl.value = state.sheetCm;
+    layout();
+    updateHUD();
   });
 
   wsCheck.addEventListener('change', () => {

@@ -375,6 +375,36 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
   cursor: not-allowed;
 }
 
+.ctrl-num {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ctrl-num input[type="number"] {
+  width: 100%;
+  padding: 9px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: #fff;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.ctrl-num input[type="number"]:focus-visible {
+  outline: none;
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.ctrl-num input[type="number"]::-webkit-outer-spin-button,
+.ctrl-num input[type="number"]::-webkit-inner-spin-button {
+  opacity: .35;
+}
+
 .ctrl-check {
   display: flex;
   align-items: flex-start;
@@ -649,6 +679,47 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; }
 
 .cell:hover .tag,
 .cell.selected .tag { opacity: 1; }
+
+/* cm size badge — follows the frame, shown on selection + while dragging */
+
+.dims {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px 8px;
+  background: var(--orange);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  border: 1px solid rgba(5, 4, 3, .35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+  pointer-events: none;
+  transition: opacity .14s ease;
+}
+
+.dims::before {
+  content: "↔";
+  margin-right: 6px;
+  font-size: 10px;
+  opacity: .75;
+}
+
+.cell.selected .dims,
+.cell.dragging .dims { opacity: 1; }
+
+/* flip the badge above the frame when it would fall off the sheet */
+
+.cell.dims-top .dims { top: -26px; bottom: auto; }
 
 /* lock button */
 
