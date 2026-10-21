@@ -62,7 +62,7 @@
       <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
       <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
       <span><b>CROP ICON</b> CROP + FREE SHAPE (WHITE SPACE)</span>
-      <span><b>GRID OFF</b> DRAG IMAGE ANYWHERE (<b>CORNER</b> RESIZE)</span>
+      <span><b>FREE MODE</b> DRAG IMAGE ANYWHERE (<b>CORNER</b> RESIZE)</span>
       <span><b>+ TEXT BOX</b> STYLED TEXT · DRAG TO PLACE</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
       <a class="mlink" href="#manual">MANUAL ↓</a>
@@ -95,41 +95,57 @@
       </div>
     </div>
 
-    <div class="side-head">Controls</div>
-    <div class="ctrls">
-      <button class="btn wide" id="resetBtn" type="button">RESET GRID</button>
+    <div class="side-tabs" role="tablist" aria-label="Sidebar sections">
+      <button class="side-tab" id="tabBasic" type="button" role="tab" aria-selected="true" aria-controls="panelBasic">BASIC</button>
+      <button class="side-tab" id="tabAdv" type="button" role="tab" aria-selected="false" aria-controls="panelAdv">ADVANCED OPTIONS</button>
+    </div>
 
-      <label class="ctrl-check" for="gridCheck" title="ON = images snap into the justified grid. OFF = free position, drag each image anywhere, size it freely with the corner handles.">
-        <input type="checkbox" id="gridCheck" checked>
-        <span class="box" aria-hidden="true"></span>
-        <span class="txt">ENABLE GRID — SNAP IMAGES INTO THE AUTO LAYOUT</span>
-      </label>
+    <div class="side-panel" id="panelBasic" role="tabpanel" aria-labelledby="tabBasic">
+      <div class="side-head">Controls</div>
+      <div class="ctrls">
+        <button class="btn wide" id="resetBtn" type="button">RESET GRID</button>
 
-      <div class="ctrl-gap">
-        <div class="ctrl-gap-row">
-          <label for="gapRange">GAP</label>
-          <span id="gapVal">0PX</span>
+        <div class="ctrl-gap">
+          <div class="ctrl-gap-row">
+            <label for="gapRange">GAP</label>
+            <span id="gapVal">0PX</span>
+          </div>
+          <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
         </div>
-        <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
+
+        <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
+          <input type="checkbox" id="wsCheck">
+          <span class="box" aria-hidden="true"></span>
+          <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
+        </label>
+
+        <div class="ctrl-sub-head">Neighbours</div>
+
+        <label class="ctrl-check" for="adjCheck" title="ON = resizing one image adjusts its neighbours so the grid stays justified. OFF = resizing or dragging affects only that image — every other image keeps its exact size and position; freed space stays as white paper or your background.">
+          <input type="checkbox" id="adjCheck" checked>
+          <span class="box" aria-hidden="true"></span>
+          <span class="txt">AUTO-ADJUST NEIGHBOURING IMAGES</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="side-panel" id="panelAdv" role="tabpanel" aria-labelledby="tabAdv" hidden>
+      <div class="side-head">Layout mode</div>
+      <div class="ctrls">
+        <div class="ctrl-gap-row">
+          <label id="modeSegLabel">POSITIONING</label>
+        </div>
+        <div class="ctrl-seg" role="group" aria-labelledby="modeSegLabel">
+          <button class="seg wide" id="modeGridBtn" type="button" aria-pressed="true" title="Images snap into the justified grid — rows and columns resize together.">GRID</button>
+          <button class="seg wide" id="modeFreeBtn" type="button" aria-pressed="false" title="Free position — drag each image anywhere, size it freely with the corner handles.">FREE</button>
+        </div>
       </div>
 
-      <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
-        <input type="checkbox" id="wsCheck">
-        <span class="box" aria-hidden="true"></span>
-        <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
-      </label>
+      <div class="side-head">Text + background</div>
+      <div class="ctrls">
+        <button class="btn wide" id="addTextBtn" type="button">+ ADD TEXT BOX</button>
 
-      <div class="ctrl-adv-head">Advanced settings</div>
-
-      <label class="ctrl-check" for="adjCheck" title="ON = resizing one image adjusts its neighbours so the grid stays justified. OFF = resizing or dragging affects only that image — every other image keeps its exact size and position; freed space stays as white paper or your background.">
-        <input type="checkbox" id="adjCheck" checked>
-        <span class="box" aria-hidden="true"></span>
-        <span class="txt">AUTO-ADJUST NEIGHBOURING IMAGES</span>
-      </label>
-
-      <button class="btn wide" id="addTextBtn" type="button">+ ADD TEXT BOX</button>
-
-      <div class="ctrl-text" id="textPanel" hidden>
+        <div class="ctrl-text" id="textPanel" hidden>
         <button class="ctrl-text-head" id="textPanelHead" type="button" aria-expanded="true" aria-controls="textPanelBody">
           <span>TEXT STYLING — <span id="textSelLabel">—</span></span>
           <span class="caret" aria-hidden="true">▾</span>
@@ -183,6 +199,7 @@
           <button class="btn ghost" id="bgClearBtn" type="button" hidden>CLEAR ✕</button>
         </div>
       </div>
+      </div>
     </div>
   </aside>
 </main>
@@ -207,9 +224,10 @@
           <li>Tick <b>ALLOW WHITE SPACE</b> in the side panel to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
           <li>Still in white space mode, press an image's <b>crop icon</b> (under the rotate icon) to free that one frame — drag its handles to change its proportions and the image crops to fill, while pinned neighbours keep their original shapes.</li>
           <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
-          <li>Set a custom <b>BACKGROUND</b> in the side panel — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
+          <li>Set a custom <b>BACKGROUND</b> in the <b>ADVANCED OPTIONS</b> tab — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
           <li>Press <b>+ ADD TEXT BOX</b> to drop styled text onto the sheet at a random spot — write your copy in the drawer that opens, pick a font, colours or a 2-colour gradient, then drag the box wherever it belongs.</li>
-          <li>Untick <b>ENABLE GRID</b> to place images freely — drag each one anywhere on the sheet and size it with its corner handles; tick it again to snap everything back to the grid.</li>
+          <li>Switch <b>FREE</b> in the <b>ADVANCED OPTIONS</b> tab to place images freely — drag each one anywhere on the sheet and size it with its corner handles; switch back to <b>GRID</b> to snap everything back.</li>
+          <li>Untick <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> in the <b>BASIC</b> tab when you want to resize or move one image without touching any of the others.</li>
           <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
         </ol>
       </div>
@@ -231,27 +249,32 @@
 
       <div class="card">
         <h3>White space mode</h3>
-        <p>The checkbox in the side panel. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
+        <p>The checkbox in the <b>BASIC</b> tab. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
+      </div>
+
+      <div class="card">
+        <h3>Sidebar tabs</h3>
+        <p>The side panel is split in two. <b>BASIC</b> holds the everyday controls: live stats, <b>RESET GRID</b>, <b>GAP</b>, <b>ALLOW WHITE SPACE</b> and <b>AUTO-ADJUST NEIGHBOURING IMAGES</b>. <b>ADVANCED OPTIONS</b> holds the <b>GRID / FREE</b> positioning switch, <b>+ ADD TEXT BOX</b> with its styling drawer, and the custom <b>BACKGROUND</b>. Adding or clicking a text box jumps to the Advanced tab automatically.</p>
       </div>
 
       <div class="card">
         <h3>Grid mode</h3>
-        <p>The <b>ENABLE GRID</b> checkbox in the side panel is on by default. ON = images snap into the justified auto-layout — rows and columns share the sheet and neighbours resize together. OFF = free position: every image floats wherever you drag it, and the corner / edge handles resize it on its own without moving the others. Untick it any time to start composing off-grid, or tick it again to snap everything back.</p>
+        <p>The <b>GRID / FREE</b> switch in the <b>ADVANCED OPTIONS</b> tab starts on <b>GRID</b>. GRID = images snap into the justified auto-layout — rows and columns share the sheet and neighbours resize together. FREE = free position: every image floats wherever you drag it, and the corner / edge handles resize it on its own without moving the others. Flip it any time; switching back to GRID snaps everything back.</p>
       </div>
 
       <div class="card">
         <h3>Auto-adjust neighbours</h3>
-        <p>The <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> checkbox in <b>ADVANCED SETTINGS</b> is on by default. ON = dragging a resize handle grows or shrinks the images sharing its row or column, so the sheet stays fully justified — the original behaviour. OFF = the image you touch is the only one that changes: its neighbours hold their exact sizes and positions, and any space you free up stays as white paper or your custom background instead of being handed out to the row. Dragging an image body also stops swapping — it simply moves that one image. The gap setting still applies.</p>
+        <p>The <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> checkbox in the <b>BASIC</b> tab is on by default. ON = dragging a resize handle grows or shrinks the images sharing its row or column, so the sheet stays fully justified — the original behaviour. OFF = the image you touch is the only one that changes: its neighbours hold their exact sizes and positions, and any space you free up stays as white paper or your custom background instead of being handed out to the row. Dragging an image body also stops swapping — it simply moves that one image. The gap setting still applies.</p>
       </div>
 
       <div class="card">
         <h3>Custom background</h3>
-        <p><b>SET BG IMAGE</b> in the side panel puts your own picture behind the sheet. It fills the canvas cover-style, shows through white space, gaps and the empty drop zone, and is baked into the exported PNG. The filename appears next to the label — <b>CLEAR ✕</b> reverts to plain white paper. Like everything here, the file never leaves your browser.</p>
+        <p><b>SET BG IMAGE</b> in the <b>ADVANCED OPTIONS</b> tab puts your own picture behind the sheet. It fills the canvas cover-style, shows through white space, gaps and the empty drop zone, and is baked into the exported PNG. The filename appears next to the label — <b>CLEAR ✕</b> reverts to plain white paper. Like everything here, the file never leaves your browser.</p>
       </div>
 
       <div class="card">
         <h3>Text boxes</h3>
-        <p>Press <b>+ ADD TEXT BOX</b> in the side panel — a text box lands at a random spot on the sheet and the <b>TEXT STYLING</b> drawer opens beside it. Type your words, pick a font and size, flip <b>BOLD</b> / <b>ITALIC</b>, and choose a solid colour or switch on <b>GRADIENT</b> for a two-colour fill. Drag the box anywhere on the sheet; click it again any time to reopen the drawer. <b>DEL</b> or <b>REMOVE TEXT</b> takes it off, and every text box is drawn into the exported PNG exactly as you see it.</p>
+        <p>Press <b>+ ADD TEXT BOX</b> in the <b>ADVANCED OPTIONS</b> tab — a text box lands at a random spot on the sheet, the tab opens and the <b>TEXT STYLING</b> drawer shows beside it. Type your words, pick a font and size, flip <b>BOLD</b> / <b>ITALIC</b>, and choose a solid colour or switch on <b>GRADIENT</b> for a two-colour fill. Drag the box anywhere on the sheet; click it again any time to reopen the drawer. <b>DEL</b> or <b>REMOVE TEXT</b> takes it off, and every text box is drawn into the exported PNG exactly as you see it.</p>
       </div>
     </div>
   </div>

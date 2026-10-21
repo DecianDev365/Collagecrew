@@ -260,9 +260,47 @@ body::after {
 
 .stats-wrap + .side-head { margin-top: 18px; }
 
-/* advanced settings sub-section inside .ctrls */
+/* sidebar tabs: BASIC | ADVANCED OPTIONS */
 
-.ctrl-adv-head {
+.side-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.side-tab {
+  flex: 1;
+  padding: 9px 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: color .12s ease, border-color .12s ease, background .12s ease;
+}
+
+.side-tab:hover { color: var(--orange); border-color: var(--orange); }
+
+.side-tab[aria-selected="true"] {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--ink);
+}
+
+.side-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.side-panel { padding-top: 4px; }
+
+.side-panel .side-head:first-child { margin-top: 14px; }
+
+/* small divider label inside .ctrls */
+
+.ctrl-sub-head {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -275,7 +313,7 @@ body::after {
   margin-top: 6px;
 }
 
-.ctrl-adv-head::before {
+.ctrl-sub-head::before {
   content: "";
   width: 8px;
   height: 8px;
@@ -1318,6 +1356,7 @@ body::after {
   .hintbar .local { margin-left: 0; }
   .manual-inner { padding: 44px 14px 56px; }
   .ctrl-check .txt { font-size: 9px; letter-spacing: .1em; }
+  .side-tab { letter-spacing: .1em; padding: 8px 6px; }
   .card { padding: 16px 16px 20px; }
 }
 

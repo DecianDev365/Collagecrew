@@ -44,7 +44,12 @@
   const tC2 = document.getElementById('tC2');
   const tRemoveBtn = document.getElementById('tRemoveBtn');
   const addTextBtn = document.getElementById('addTextBtn');
-  const gridCheck = document.getElementById('gridCheck');
+  const tabBasic = document.getElementById('tabBasic');
+  const tabAdv = document.getElementById('tabAdv');
+  const panelBasic = document.getElementById('panelBasic');
+  const panelAdv = document.getElementById('panelAdv');
+  const modeGridBtn = document.getElementById('modeGridBtn');
+  const modeFreeBtn = document.getElementById('modeFreeBtn');
   const adjCheck = document.getElementById('adjCheck');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
@@ -332,6 +337,38 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     Sidebar tabs + GRID / FREE switch
+     --------------------------------------------------------- */
+
+  function showTab(adv) {
+    tabBasic.setAttribute('aria-selected', adv ? 'false' : 'true');
+    tabAdv.setAttribute('aria-selected', adv ? 'true' : 'false');
+    panelBasic.hidden = adv;
+    panelAdv.hidden = !adv;
+  }
+
+  tabBasic.addEventListener('click', () => showTab(false));
+  tabAdv.addEventListener('click', () => showTab(true));
+
+  function syncModeSwitch() {
+    modeGridBtn.setAttribute('aria-pressed', state.gridMode ? 'true' : 'false');
+    modeFreeBtn.setAttribute('aria-pressed', state.gridMode ? 'false' : 'true');
+    document.getElementById('resetBtn').textContent = state.gridMode ? 'RESET GRID' : 'RE-SCATTER';
+  }
+
+  function applyGridMode(on) {
+    if (state.gridMode === on) return;
+    setGridMode(on);
+    syncModeSwitch();
+    toast(on
+      ? 'GRID ON — IMAGES SNAP TO THE AUTO LAYOUT'
+      : 'GRID OFF — DRAG IMAGES ANYWHERE, RESIZE FREELY');
+  }
+
+  modeGridBtn.addEventListener('click', () => applyGridMode(true));
+  modeFreeBtn.addEventListener('click', () => applyGridMode(false));
+
   function seedFreeLayout() {
     const frs = fractions();
     const n = state.items.length || 1;
@@ -613,6 +650,7 @@
     state.texts.push(t);
     renderText(t);
     selectText(t);
+    showTab(true);
     textPanel.classList.remove('collapsed');
     textPanelHead.setAttribute('aria-expanded', 'true');
     toast('TEXT BOX ADDED — DRAG TO PLACE, STYLE IN SIDEBAR');
@@ -632,6 +670,7 @@
   function selectText(t) {
     state.selText = t || null;
     state.selected = null;
+    if (t) showTab(true);
     updateSelection();
     updateTextSelection();
     updateHUD();
@@ -1283,14 +1322,6 @@
       toast('AUTO-FIT ON — IMAGES FILL THEIR FRAMES');
     }
     layout(true);
-  });
-
-  gridCheck.addEventListener('change', () => {
-    setGridMode(gridCheck.checked);
-    document.getElementById('resetBtn').textContent = state.gridMode ? 'RESET GRID' : 'RE-SCATTER';
-    toast(state.gridMode
-      ? 'GRID ON — IMAGES SNAP TO THE AUTO LAYOUT'
-      : 'GRID OFF — DRAG IMAGES ANYWHERE, RESIZE FREELY');
   });
 
   adjCheck.addEventListener('change', () => {
