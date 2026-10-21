@@ -186,6 +186,8 @@ body::after {
 
 .btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
+a.btn { display: inline-block; text-decoration: none; text-align: center; }
+
 .btn.accent {
   background: var(--orange);
   border-color: var(--orange);

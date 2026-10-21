@@ -33,6 +33,7 @@
     <button class="btn accent" id="uploadBtn" type="button">+ UPLOAD</button>
     <button class="btn" id="pasteBtn" type="button">PASTE ⌘V</button>
     <button class="btn" id="deleteBtn" type="button">DELETE ✕</button>
+    <a class="btn" href="manual.html">HELP</a>
     <button class="btn accent" id="downloadBtn" type="button">EXPORT PNG ↓</button>
   </div>
 </header>
@@ -65,7 +66,7 @@
       <span><b>FREE MODE</b> DRAG IMAGE ANYWHERE (<b>CORNER</b> RESIZE)</span>
       <span><b>+ TEXT BOX</b> STYLED TEXT · DRAG TO PLACE</span>
       <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
-      <a class="mlink" href="#manual">MANUAL ↓</a>
+      <a class="mlink" href="manual.html">MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
     </div>
   </section>
@@ -203,82 +204,6 @@
     </div>
   </aside>
 </main>
-
-<section class="manual" id="manual">
-  <div class="manual-inner">
-    <header class="manual-head">
-      <h2>Manual</h2>
-      <p>A SCROLL GUIDE — EVERYTHING THE CONSOLE CAN DO</p>
-    </header>
-
-    <div class="manual-grid">
-      <div class="card span2">
-        <h3>Quick start</h3>
-        <ol>
-          <li>Add images — upload, paste (⌘V / Ctrl+V) or drop them on the sheet.</li>
-          <li>All images land at equal size on the white 16:9 canvas; adding more shrinks the rest automatically.</li>
-          <li>Click an image to reveal its 8 resize handles plus the lock icon (top-right) and the rotate icon (below it).</li>
-          <li>Drag a corner or edge — images sharing its row or column shrink or grow so the sheet stays full.</li>
-          <li>Press the lock icon to freeze that image's proportions — it keeps its shape while everything around it changes.</li>
-          <li>Press the rotate icon to turn the image 90° — press again to spin it through 180°, 270° and back to 0°.</li>
-          <li>Tick <b>ALLOW WHITE SPACE</b> in the side panel to keep every image's original proportions — nothing is cropped or auto-resized, leftover paper stays white.</li>
-          <li>Still in white space mode, press an image's <b>crop icon</b> (under the rotate icon) to free that one frame — drag its handles to change its proportions and the image crops to fill, while pinned neighbours keep their original shapes.</li>
-          <li>Use <b>GAP</b> in the side panel to add breathing space between images, and <b>RESET GRID</b> to snap everything back to equal sizes.</li>
-          <li>Set a custom <b>BACKGROUND</b> in the <b>ADVANCED OPTIONS</b> tab — your picture fills the sheet behind the images, shows through white space and gaps, and lands in the exported PNG.</li>
-          <li>Press <b>+ ADD TEXT BOX</b> to drop styled text onto the sheet at a random spot — write your copy in the drawer that opens, pick a font, colours or a 2-colour gradient, then drag the box wherever it belongs.</li>
-          <li>Switch <b>FREE</b> in the <b>ADVANCED OPTIONS</b> tab to place images freely — drag each one anywhere on the sheet and size it with its corner handles; switch back to <b>GRID</b> to snap everything back.</li>
-          <li>Untick <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> in the <b>BASIC</b> tab when you want to resize or move one image without touching any of the others.</li>
-          <li>Drag an image body onto another to swap them. Export a print-ready PNG when done.</li>
-        </ol>
-      </div>
-
-      <div class="card">
-        <h3>Lock icon</h3>
-        <p>Click an image → padlock appears top-right. Press it to lock: that frame keeps its exact proportions through every other resize, add, swap or grid change. Locked frames that no longer fit are given white space around them instead of being squashed. Press again to unlock.</p>
-      </div>
-
-      <div class="card">
-        <h3>Rotate icon</h3>
-        <p>Click an image → the rotate icon appears under the padlock. Press it to turn the image 90° clockwise. In auto-fit mode the frame stays put and the image is re-cropped to fill it; in white-space mode the frame swaps to the new proportions. Keep pressing to spin through 180°, 270° and back to square one.</p>
-      </div>
-
-      <div class="card">
-        <h3>Crop icon</h3>
-        <p>Only offered while <b>ALLOW WHITE SPACE</b> is ticked — click an image and the crop icon appears under the rotate icon. Press it to free that frame: drag its handles to change its proportions and the image is cover-cropped to fill instead of being squeezed to fit. Cropped frames trade width with each other, or borrow it from the row when pinned neighbours are around — pinned images never lose their original shape. Press again to snap back to the uncropped natural ratio.</p>
-      </div>
-
-      <div class="card">
-        <h3>White space mode</h3>
-        <p>The checkbox in the <b>BASIC</b> tab. ON = every image keeps the proportions you gave it (its natural ratio) — the console will never crop or reshape it; leftover space on the paper stays white, and you control the sizes by dragging. Images with the crop icon switched on are exempt: they can be reshaped freely and are cropped to fill their frames. OFF = auto-fit layout crops images to fill their frames.</p>
-      </div>
-
-      <div class="card">
-        <h3>Sidebar tabs</h3>
-        <p>The side panel is split in two. <b>BASIC</b> holds the everyday controls: live stats, <b>RESET GRID</b>, <b>GAP</b>, <b>ALLOW WHITE SPACE</b> and <b>AUTO-ADJUST NEIGHBOURING IMAGES</b>. <b>ADVANCED OPTIONS</b> holds the <b>GRID / FREE</b> positioning switch, <b>+ ADD TEXT BOX</b> with its styling drawer, and the custom <b>BACKGROUND</b>. Adding or clicking a text box jumps to the Advanced tab automatically.</p>
-      </div>
-
-      <div class="card">
-        <h3>Grid mode</h3>
-        <p>The <b>GRID / FREE</b> switch in the <b>ADVANCED OPTIONS</b> tab starts on <b>GRID</b>. GRID = images snap into the justified auto-layout — rows and columns share the sheet and neighbours resize together. FREE = free position: every image floats wherever you drag it, and the corner / edge handles resize it on its own without moving the others. Flip it any time; switching back to GRID snaps everything back.</p>
-      </div>
-
-      <div class="card">
-        <h3>Auto-adjust neighbours</h3>
-        <p>The <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> checkbox in the <b>BASIC</b> tab is on by default. ON = dragging a resize handle grows or shrinks the images sharing its row or column, so the sheet stays fully justified — the original behaviour. OFF = the image you touch is the only one that changes: its neighbours hold their exact sizes and positions, and any space you free up stays as white paper or your custom background instead of being handed out to the row. Dragging an image body also stops swapping — it simply moves that one image. The gap setting still applies.</p>
-      </div>
-
-      <div class="card">
-        <h3>Custom background</h3>
-        <p><b>SET BG IMAGE</b> in the <b>ADVANCED OPTIONS</b> tab puts your own picture behind the sheet. It fills the canvas cover-style, shows through white space, gaps and the empty drop zone, and is baked into the exported PNG. The filename appears next to the label — <b>CLEAR ✕</b> reverts to plain white paper. Like everything here, the file never leaves your browser.</p>
-      </div>
-
-      <div class="card">
-        <h3>Text boxes</h3>
-        <p>Press <b>+ ADD TEXT BOX</b> in the <b>ADVANCED OPTIONS</b> tab — a text box lands at a random spot on the sheet, the tab opens and the <b>TEXT STYLING</b> drawer shows beside it. Type your words, pick a font and size, flip <b>BOLD</b> / <b>ITALIC</b>, and choose a solid colour or switch on <b>GRADIENT</b> for a two-colour fill. Drag the box anywhere on the sheet; click it again any time to reopen the drawer. <b>DEL</b> or <b>REMOVE TEXT</b> takes it off, and every text box is drawn into the exported PNG exactly as you see it.</p>
-      </div>
-    </div>
-  </div>
-</section>
 
 <footer class="footer">
   <div class="footer-strip">
