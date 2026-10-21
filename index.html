@@ -119,6 +119,14 @@
         <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
       </label>
 
+      <div class="ctrl-adv-head">Advanced settings</div>
+
+      <label class="ctrl-check" for="adjCheck" title="ON = resizing one image adjusts its neighbours so the grid stays justified. OFF = resizing or dragging affects only that image — every other image keeps its exact size and position; freed space stays as white paper or your background.">
+        <input type="checkbox" id="adjCheck" checked>
+        <span class="box" aria-hidden="true"></span>
+        <span class="txt">AUTO-ADJUST NEIGHBOURING IMAGES</span>
+      </label>
+
       <button class="btn wide" id="addTextBtn" type="button">+ ADD TEXT BOX</button>
 
       <div class="ctrl-text" id="textPanel" hidden>
@@ -229,6 +237,11 @@
       <div class="card">
         <h3>Grid mode</h3>
         <p>The <b>ENABLE GRID</b> checkbox in the side panel is on by default. ON = images snap into the justified auto-layout — rows and columns share the sheet and neighbours resize together. OFF = free position: every image floats wherever you drag it, and the corner / edge handles resize it on its own without moving the others. Untick it any time to start composing off-grid, or tick it again to snap everything back.</p>
+      </div>
+
+      <div class="card">
+        <h3>Auto-adjust neighbours</h3>
+        <p>The <b>AUTO-ADJUST NEIGHBOURING IMAGES</b> checkbox in <b>ADVANCED SETTINGS</b> is on by default. ON = dragging a resize handle grows or shrinks the images sharing its row or column, so the sheet stays fully justified — the original behaviour. OFF = the image you touch is the only one that changes: its neighbours hold their exact sizes and positions, and any space you free up stays as white paper or your custom background instead of being handed out to the row. Dragging an image body also stops swapping — it simply moves that one image. The gap setting still applies.</p>
       </div>
 
       <div class="card">

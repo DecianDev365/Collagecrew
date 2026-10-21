@@ -260,6 +260,29 @@ body::after {
 
 .stats-wrap + .side-head { margin-top: 18px; }
 
+/* advanced settings sub-section inside .ctrls */
+
+.ctrl-adv-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .3em;
+  color: var(--dim);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  margin-top: 6px;
+}
+
+.ctrl-adv-head::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--orange);
+  flex: none;
+}
+
 /* side controls (gap · white space · reset) */
 
 .ctrls {
@@ -369,6 +392,13 @@ body::after {
 }
 
 .ctrl-check:hover .txt { color: var(--orange); }
+
+.ctrl-check input:disabled ~ .box { opacity: .35; }
+.ctrl-check input:disabled ~ .txt { opacity: .45; }
+.ctrl-check input:disabled ~ .box,
+.ctrl-check:has(input:disabled) { cursor: not-allowed; }
+.ctrl-check:has(input:disabled):hover .txt { color: var(--txt); }
+.ctrl-check:has(input:disabled):hover .box { transform: none; }
 
 /* custom canvas background */
 
@@ -514,6 +544,9 @@ body::after {
 
 .canvas.ws .cell img { object-fit: contain; }
 .canvas.ws .cell.crop img { object-fit: cover; }
+/* solo-resized while auto-adjust is off — frame may diverge from the
+   natural ratio, so cover-crop to match the export behaviour */
+.canvas.ws .cell.solo img { object-fit: cover; }
 
 /* free position mode — images float anywhere, cover their own frame */
 .canvas.free .cell { cursor: grab; }

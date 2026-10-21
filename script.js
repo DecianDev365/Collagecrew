@@ -45,6 +45,7 @@
   const tRemoveBtn = document.getElementById('tRemoveBtn');
   const addTextBtn = document.getElementById('addTextBtn');
   const gridCheck = document.getElementById('gridCheck');
+  const adjCheck = document.getElementById('adjCheck');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -63,6 +64,7 @@
     seq: 0,
     whitespace: false,
     gridMode: true,
+    autoAdjust: true,
     bgImg: null,
     bgURL: null
   };
@@ -220,6 +222,14 @@
       }
       y += h[r];
     }
+    if (!state.autoAdjust) {
+      // auto-adjust OFF: solo-resized images hold the exact rect the
+      // user gave them; the rest of the grid keeps solving as before
+      for (const c of out) {
+        const ov = c.item.ov;
+        if (ov) { c.x = ov.x; c.y = ov.y; c.w = ov.w; c.h = ov.h; }
+      }
+    }
     return out;
   }
 
@@ -243,6 +253,8 @@
       }
       f.item._w = f.w;
       f.item._h = f.h;
+      f.item.el.classList.toggle('solo',
+        state.gridMode && !state.autoAdjust && !!f.item.ov);
       f.item.tag.textContent = pad(i + 1);
     });
     state.texts.forEach(renderText);
@@ -257,6 +269,7 @@
 
   function rebuildDefault(clearLocks) {
     state.rows = [];
+    for (const it of state.items) it.ov = null;
     if (clearLocks) {
       for (const it of state.items) {
         it.locked = false;
@@ -301,6 +314,7 @@
     }
     gapRange.disabled = !on;
     wsCheck.disabled = !on;
+    adjCheck.disabled = !on;
     canvas.style.setProperty('--gh', (on ? state.gap / 2 : 0) + 'px');
     updateModeLabel();
   }
@@ -312,6 +326,9 @@
       modeLabel.textContent = 'MODE — WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)';
     } else {
       modeLabel.textContent = 'MODE — AUTO-FIT (CROP TO FILL)';
+    }
+    if (state.gridMode && !state.autoAdjust) {
+      modeLabel.textContent += ' · NEIGHBOURS OFF';
     }
   }
 
@@ -707,7 +724,9 @@
     }
     if (!sel) return;
 
-    if (!state.gridMode) {
+    if (!state.gridMode || !state.autoAdjust) {
+      // free position, or auto-adjust OFF: every handle works on this
+      // image alone — nothing is shared with neighbours
       sel.el.querySelectorAll('.h').forEach(h => h.classList.remove('off'));
       return;
     }
@@ -851,6 +870,29 @@
       return;
     }
 
+    if (!state.autoAdjust) {
+      // auto-adjust OFF: resize this image only — neighbours keep
+      // their exact size and position, freed space stays empty
+      gesture = {
+        type: 'resize',
+        solo: true,
+        dir,
+        x0: e.clientX,
+        y0: e.clientY,
+        cw: Math.max(cr.width, 1),
+        ch: Math.max(cr.height, 1),
+        x1: f.x,
+        y1: f.y,
+        w1: f.w,
+        h1: f.h,
+        minFX: MIN / Math.max(cr.width, 1),
+        minFY: MIN / Math.max(cr.height, 1),
+        item
+      };
+      window.addEventListener('pointermove', onResizeMove);
+      return;
+    }
+
     const row = rowOf(item);
 
     const totalH0 = state.rows.reduce((s, r) => s + r.weight, 0) || 1;
@@ -906,8 +948,9 @@
     const g = gesture;
     if (!g || g.type !== 'resize') return;
 
-    if (g.free) {
-      // free position: resize the frame itself, no neighbours involved
+    if (g.free || g.solo) {
+      // free position (grid off) or solo resize (auto-adjust off):
+      // resize the frame itself, no neighbours involved
       const rawX = (e.clientX - g.x0) / g.cw;
       const rawY = (e.clientY - g.y0) / g.ch;
       const dir = g.dir;
@@ -929,10 +972,14 @@
         h1 = bottom - y1;
       }
 
-      it.fx = x1;
-      it.fy = y1;
-      it.fw = w1;
-      it.fh = h1;
+      if (g.solo) {
+        it.ov = { x: x1, y: y1, w: w1, h: h1 };
+      } else {
+        it.fx = x1;
+        it.fy = y1;
+        it.fw = w1;
+        it.fh = h1;
+      }
       state.userModified = true;
       layout();
       return;
@@ -1008,6 +1055,9 @@
   }
 
   function beginMove(item, e) {
+    const f = state.gridMode && state.autoAdjust
+      ? fractions().find(x => x.item === item)
+      : null;
     gesture = {
       type: 'move',
       item,
@@ -1015,6 +1065,7 @@
       y0: e.clientY,
       fx0: item.fx,
       fy0: item.fy,
+      solo0: f ? { x: f.x, y: f.y, w: f.w, h: f.h } : null,
       active: false,
       cell: item.el,
       cr: canvas.getBoundingClientRect()
@@ -1039,6 +1090,23 @@
       const it = g.item;
       it.fx = clamp(g.fx0 + (e.clientX - g.x0) / cw, 0, Math.max(0, 1 - it.fw));
       it.fy = clamp(g.fy0 + (e.clientY - g.y0) / ch, 0, Math.max(0, 1 - it.fh));
+      layout();
+      return;
+    }
+
+    if (!state.autoAdjust) {
+      // auto-adjust OFF: move this image alone — no swapping, the
+      // slot it leaves behind stays as white space
+      const cw = g.cr.width || 1;
+      const ch = g.cr.height || 1;
+      const s = g.solo0;
+      g.item.ov = {
+        x: clamp(s.x + (e.clientX - g.x0) / cw, 0, Math.max(0, 1 - s.w)),
+        y: clamp(s.y + (e.clientY - g.y0) / ch, 0, Math.max(0, 1 - s.h)),
+        w: s.w,
+        h: s.h
+      };
+      state.userModified = true;
       layout();
       return;
     }
@@ -1204,6 +1272,9 @@
   wsCheck.addEventListener('change', () => {
     state.whitespace = wsCheck.checked;
     canvas.classList.toggle('ws', state.whitespace);
+    // drop every solo rect so the grid reclaims all images —
+    // toggling white space always snaps the sheet back into place
+    for (const it of state.items) it.ov = null;
     updateModeLabel();
     if (state.whitespace) {
       state.userModified = true;
@@ -1220,6 +1291,20 @@
     toast(state.gridMode
       ? 'GRID ON — IMAGES SNAP TO THE AUTO LAYOUT'
       : 'GRID OFF — DRAG IMAGES ANYWHERE, RESIZE FREELY');
+  });
+
+  adjCheck.addEventListener('change', () => {
+    state.autoAdjust = adjCheck.checked;
+    if (state.autoAdjust) {
+      // clear every solo rect — the justified grid takes back over
+      for (const it of state.items) it.ov = null;
+      toast('AUTO-ADJUST ON — RESIZING ADJUSTS NEIGHBOURING IMAGES');
+    } else {
+      toast('AUTO-ADJUST OFF — ONLY THE IMAGE YOU TOUCH CHANGES');
+    }
+    updateModeLabel();
+    updateSelection();
+    layout(true);
   });
 
   /* ---------------------------------------------------------
@@ -1394,7 +1479,7 @@
       ctx.translate(x + w / 2, y + h / 2);
       if (deg) ctx.rotate(deg * Math.PI / 180);
 
-      if (state.gridMode && state.whitespace && !f.item.crop) {
+      if (state.gridMode && state.whitespace && !f.item.crop && !f.item.ov) {
         // pinned — proportions already match, draw whole image, no crop
         ctx.drawImage(im, -bw / 2, -bh / 2, bw, bh);
       } else {
