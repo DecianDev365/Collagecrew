@@ -53,6 +53,10 @@
   const adjCheck = document.getElementById('adjCheck');
   const sheetCmEl = document.getElementById('sheetCm');
   const selDimsVal = document.getElementById('selDimsVal');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
 
   const DIRS = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   const MIN = 44;               // min cell size in display px
@@ -75,18 +79,197 @@
     autoAdjust: true,
     sheetCm: SHEET_CM_DEFAULT,
     bgImg: null,
-    bgURL: null
+    bgURL: null,
+    bgName: ''
   };
 
   const pad = n => String(n).padStart(2, '0');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-  // physical size read-out — the 16:9 canvas maps to sheetCm x (sheetCm / CAR)
+  // physical size read-out - the 16:9 canvas maps to sheetCm x (sheetCm / CAR)
   const cmW = wFrac => wFrac * state.sheetCm;
   const cmH = hFrac => hFrac * state.sheetCm / CAR;
   const fmtCm = v => (v < 10 ? v.toFixed(1) : String(Math.round(v))) + ' CM';
   const rowOf = item => state.rows.find(r => r.items.includes(item));
   const dispAR = it => (it.rot % 180 === 90) ? 1 / (it.ar || 1) : (it.ar || 1);
+
+  const history = { past: [], future: [], limit: 80 };
+
+  function snapshot() {
+    return {
+      items: state.items.map(it => ({
+        ref: it,
+        weight: it.weight,
+        locked: it.locked,
+        lockAR: it.lockAR,
+        rot: it.rot,
+        crop: it.crop,
+        ov: it.ov ? { x: it.ov.x, y: it.ov.y, w: it.ov.w, h: it.ov.h } : null,
+        fx: it.fx,
+        fy: it.fy,
+        fw: it.fw,
+        fh: it.fh
+      })),
+      rows: state.rows.map(r => ({ weight: r.weight, items: r.items.slice() })),
+      texts: state.texts.map(t => ({
+        ref: t,
+        text: t.text,
+        family: t.family,
+        size: t.size,
+        bold: t.bold,
+        italic: t.italic,
+        grad: t.grad,
+        c1: t.c1,
+        c2: t.c2,
+        x: t.x,
+        y: t.y
+      })),
+      selected: state.selected,
+      selText: state.selText,
+      userModified: state.userModified,
+      gap: state.gap,
+      whitespace: state.whitespace,
+      gridMode: state.gridMode,
+      autoAdjust: state.autoAdjust,
+      sheetCm: state.sheetCm,
+      bgImg: state.bgImg,
+      bgURL: state.bgURL,
+      bgName: state.bgName
+    };
+  }
+
+  function ensureMounted(el) {
+    if (el.parentNode !== canvas) {
+      el.classList.remove('enter', 'dragging', 'selected');
+      canvas.appendChild(el);
+    }
+  }
+
+  function restore(snap) {
+    const keepItems = new Set(snap.items.map(s => s.ref));
+    for (const it of state.items) {
+      if (!keepItems.has(it)) it.el.remove();
+    }
+    state.items = snap.items.map(s => {
+      const it = s.ref;
+      it.weight = s.weight;
+      it.locked = s.locked;
+      it.lockAR = s.lockAR;
+      it.rot = s.rot;
+      it.crop = s.crop;
+      it.ov = s.ov ? { x: s.ov.x, y: s.ov.y, w: s.ov.w, h: s.ov.h } : null;
+      it.fx = s.fx;
+      it.fy = s.fy;
+      it.fw = s.fw;
+      it.fh = s.fh;
+      it.el.dataset.r = String(it.rot);
+      ensureMounted(it.el);
+      return it;
+    });
+    state.rows = snap.rows.map(r => ({ weight: r.weight, items: r.items.slice() }));
+
+    const keepTexts = new Set(snap.texts.map(s => s.ref));
+    for (const t of state.texts) {
+      if (!keepTexts.has(t)) t.el.remove();
+    }
+    state.texts = snap.texts.map(s => {
+      const t = s.ref;
+      t.text = s.text;
+      t.family = s.family;
+      t.size = s.size;
+      t.bold = s.bold;
+      t.italic = s.italic;
+      t.grad = s.grad;
+      t.c1 = s.c1;
+      t.c2 = s.c2;
+      t.x = s.x;
+      t.y = s.y;
+      ensureMounted(t.el);
+      return t;
+    });
+
+    state.selected = snap.selected;
+    state.selText = snap.selText;
+    state.userModified = snap.userModified;
+    state.gap = snap.gap;
+    state.whitespace = snap.whitespace;
+    state.gridMode = snap.gridMode;
+    state.autoAdjust = snap.autoAdjust;
+    state.sheetCm = snap.sheetCm;
+
+    gapRange.value = String(state.gap);
+    gapVal.textContent = state.gap + 'PX';
+    wsCheck.checked = state.whitespace;
+    canvas.classList.toggle('ws', state.whitespace);
+    adjCheck.checked = state.autoAdjust;
+    sheetCmEl.value = String(state.sheetCm);
+    canvas.classList.toggle('free', !state.gridMode);
+    gapRange.disabled = !state.gridMode;
+    wsCheck.disabled = !state.gridMode;
+    adjCheck.disabled = !state.gridMode;
+    canvas.style.setProperty('--gh', (state.gridMode ? state.gap / 2 : 0) + 'px');
+
+    state.bgImg = snap.bgImg;
+    state.bgURL = snap.bgURL;
+    state.bgName = snap.bgName;
+    if (state.bgURL) {
+      canvas.style.backgroundImage = 'url("' + state.bgURL + '")';
+      canvas.classList.add('has-bg');
+      bgVal.textContent = state.bgName || 'SET';
+      bgVal.title = state.bgName || '';
+      bgClearBtn.hidden = false;
+    } else {
+      canvas.style.backgroundImage = '';
+      canvas.classList.remove('has-bg');
+      bgVal.textContent = 'NONE';
+      bgVal.title = '';
+      bgClearBtn.hidden = true;
+    }
+
+    if (state.selected && !state.items.includes(state.selected)) state.selected = null;
+    if (state.selText && !state.texts.includes(state.selText)) state.selText = null;
+    if (state.selText) showTab(true);
+
+    syncModeSwitch();
+    updateModeLabel();
+    updateSelection();
+    updateTextSelection();
+    layout();
+    updateToolbar();
+  }
+
+  function canUndo() { return history.past.length > 0; }
+  function canRedo() { return history.future.length > 0; }
+
+  function updateToolbar() {
+    const hasContent = state.items.length > 0 || state.texts.length > 0;
+    const hasSelection = !!state.selected || !!state.selText;
+    if (deleteBtn) deleteBtn.disabled = !hasSelection;
+    if (downloadBtn) downloadBtn.disabled = !hasContent;
+    if (undoBtn) undoBtn.disabled = !canUndo();
+    if (redoBtn) redoBtn.disabled = !canRedo();
+  }
+
+  function commitHistory() {
+    history.past.push(snapshot());
+    if (history.past.length > history.limit) history.past.shift();
+    history.future.length = 0;
+    updateToolbar();
+  }
+
+  function undo() {
+    if (!canUndo()) return;
+    history.future.push(snapshot());
+    restore(history.past.pop());
+    toast('UNDONE');
+  }
+
+  function redo() {
+    if (!canRedo()) return;
+    history.past.push(snapshot());
+    restore(history.future.pop());
+    toast('REDONE');
+  }
 
   /* ---------------------------------------------------------
      Layout solver
@@ -103,7 +286,7 @@
     if (state.whitespace) {
       // pinned images (crop OFF) keep their natural aspect: content width
       // of a row = sum(aspects) * h / canvasAR. Cropped frames only need
-      // a min share. Shrink rows that overflow — leftover stays white.
+      // a min share. Shrink rows that overflow - leftover stays white.
       const dispW = canvas.clientWidth || 1280;
       const dispH = canvas.clientHeight || 720;
       const minF = MIN / dispW;
@@ -119,7 +302,7 @@
         const capacity = Math.max(minH, (1 - nFree * minF) * CAR / sumAr);
         if (h[r] > capacity) h[r] = capacity;
       }
-      // rows do NOT fill the canvas height here — leftover stays white
+      // rows do NOT fill the canvas height here - leftover stays white
     } else {
       // locked items pin their width via: w = lockAR * h / canvasAR.
       // Give each row a max height so locked content fits, redistribute.
@@ -170,7 +353,7 @@
       const pinnedW = i => dispAR(i) * hr / CAR;
 
       if (!free.length) {
-        // every image pinned to its natural aspect — centre the group
+        // every image pinned to its natural aspect - centre the group
         const cells = items.map(i => ({ item: i, w: pinnedW(i) }));
         const sum = cells.reduce((s, c) => s + c.w, 0);
         return { startX: Math.max(0, (1 - sum) / 2), cells };
@@ -199,7 +382,7 @@
     const free = items.filter(i => !i.locked);
 
     if (!free.length) {
-      // all locked — centre the group, leftover paper shows
+      // all locked - centre the group, leftover paper shows
       return {
         startX: Math.max(0, (1 - lockedSum) / 2),
         cells: items.map(i => ({ item: i, w: lockedW.get(i) }))
@@ -340,11 +523,11 @@
 
   function updateModeLabel() {
     if (!state.gridMode) {
-      modeLabel.textContent = 'MODE — FREE POSITION (DRAG ANYWHERE, NO GRID)';
+      modeLabel.textContent = 'MODE - FREE POSITION (DRAG ANYWHERE, NO GRID)';
     } else if (state.whitespace) {
-      modeLabel.textContent = 'MODE — WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)';
+      modeLabel.textContent = 'MODE - WHITE SPACE (ORIGINAL PROPORTIONS, NO CROP)';
     } else {
-      modeLabel.textContent = 'MODE — AUTO-FIT (CROP TO FILL)';
+      modeLabel.textContent = 'MODE - AUTO-FIT (CROP TO FILL)';
     }
     if (state.gridMode && !state.autoAdjust) {
       modeLabel.textContent += ' · NEIGHBOURS OFF';
@@ -373,11 +556,12 @@
 
   function applyGridMode(on) {
     if (state.gridMode === on) return;
+    commitHistory();
     setGridMode(on);
     syncModeSwitch();
     toast(on
-      ? 'GRID ON — IMAGES SNAP TO THE AUTO LAYOUT'
-      : 'GRID OFF — DRAG IMAGES ANYWHERE, RESIZE FREELY');
+      ? 'GRID ON - IMAGES SNAP TO THE AUTO LAYOUT'
+      : 'GRID OFF - DRAG IMAGES ANYWHERE, RESIZE FREELY');
   }
 
   modeGridBtn.addEventListener('click', () => applyGridMode(true));
@@ -405,6 +589,7 @@
      --------------------------------------------------------- */
 
   function addItem(img, name) {
+    commitHistory();
     const item = {
       id: ++state.seq,
       img,
@@ -584,6 +769,7 @@
   }
 
   function removeItem(item) {
+    commitHistory();
     const row = rowOf(item);
     if (row) {
       row.items.splice(row.items.indexOf(item), 1);
@@ -645,6 +831,7 @@
   }
 
   function addText() {
+    commitHistory();
     const t = {
       id: ++state.seq,
       text: 'YOUR TEXT',
@@ -672,10 +859,11 @@
     showTab(true);
     textPanel.classList.remove('collapsed');
     textPanelHead.setAttribute('aria-expanded', 'true');
-    toast('TEXT BOX ADDED — DRAG TO PLACE, STYLE IN SIDEBAR');
+    toast('TEXT BOX ADDED - DRAG TO PLACE, STYLE IN SIDEBAR');
   }
 
   function removeText(t) {
+    commitHistory();
     const i = state.texts.indexOf(t);
     if (i > -1) state.texts.splice(i, 1);
     t.el.remove();
@@ -726,12 +914,13 @@
      --------------------------------------------------------- */
 
   function toggleLock(item) {
+    commitHistory();
     item.locked = !item.locked;
     if (item.locked) {
       const w = item._w || 0;
       const h = item._h || 0;
       item.lockAR = (h > 1e-6 && w > 1e-6) ? (w / h) * CAR : dispAR(item);
-      toast('PROPORTIONS LOCKED — THIS FRAME HOLDS ITS SHAPE');
+      toast('PROPORTIONS LOCKED - THIS FRAME HOLDS ITS SHAPE');
     } else {
       toast('PROPORTIONS UNLOCKED');
     }
@@ -741,6 +930,7 @@
   }
 
   function rotateItem(item) {
+    commitHistory();
     item.rot = ((item.rot || 0) + 90) % 360;
     item.el.dataset.r = String(item.rot);
     toast('ROTATED ' + item.rot + '°');
@@ -749,10 +939,11 @@
   }
 
   function toggleCrop(item) {
+    commitHistory();
     item.crop = !item.crop;
     toast(item.crop
-      ? 'CROP ON — DRAG HANDLES TO RESHAPE, IMAGE CROPS TO FILL'
-      : 'CROP OFF — BACK TO ORIGINAL PROPORTIONS');
+      ? 'CROP ON - DRAG HANDLES TO RESHAPE, IMAGE CROPS TO FILL'
+      : 'CROP OFF - BACK TO ORIGINAL PROPORTIONS');
     state.userModified = true;
     select(item);
     layout(true);
@@ -784,7 +975,7 @@
 
     if (!state.gridMode || !state.autoAdjust) {
       // free position, or auto-adjust OFF: every handle works on this
-      // image alone — nothing is shared with neighbours
+      // image alone - nothing is shared with neighbours
       sel.el.querySelectorAll('.h').forEach(h => h.classList.remove('off'));
       return;
     }
@@ -833,9 +1024,9 @@
     hudTexts.textContent = pad(state.texts.length);
     if (state.selText) {
       const s = state.selText;
-      hudSelected.textContent = 'TEXT · ' + String(s.text || '').replace(/\s+/g, ' ').slice(0, 16);
+      hudSelected.textContent = 'TEXT / ' + String(s.text || '').replace(/\s+/g, ' ').slice(0, 16);
       hudSelected.title = s.text;
-      if (selDimsVal) selDimsVal.textContent = '—';
+      if (selDimsVal) selDimsVal.textContent = '-';
     } else if (state.selected) {
       const s = state.selected;
       const flags = [];
@@ -844,17 +1035,18 @@
       const wCm = cmW(s._w || 0);
       const hCm = cmH(s._h || 0);
       hudSelected.textContent =
-        s.name + ' · ' + fmtCm(wCm) + ' × ' + fmtCm(hCm) +
-        (flags.length ? ' · ' + flags.join(' · ') : '');
+        s.name + ' / ' + fmtCm(wCm) + ' × ' + fmtCm(hCm) +
+        (flags.length ? ' (' + flags.join(', ') + ')' : '');
       hudSelected.title =
-        s.name + ' — ' + wCm.toFixed(1) + ' × ' + hCm.toFixed(1) + ' cm';
+        s.name + ' - ' + wCm.toFixed(1) + ' × ' + hCm.toFixed(1) + ' cm';
       if (selDimsVal) selDimsVal.textContent = fmtCm(wCm) + ' × ' + fmtCm(hCm);
     } else {
-      hudSelected.textContent = '—';
+      hudSelected.textContent = '-';
       hudSelected.title = '';
-      if (selDimsVal) selDimsVal.textContent = '—';
+      if (selDimsVal) selDimsVal.textContent = '-';
     }
     emptyState.hidden = state.items.length > 0 || state.texts.length > 0;
+    updateToolbar();
   }
 
   /* ---------------------------------------------------------
@@ -937,7 +1129,7 @@
     }
 
     if (!state.autoAdjust) {
-      // auto-adjust OFF: resize this image only — neighbours keep
+      // auto-adjust OFF: resize this image only - neighbours keep
       // their exact size and position, freed space stays empty
       gesture = {
         type: 'resize',
@@ -1014,6 +1206,11 @@
     const g = gesture;
     if (!g || g.type !== 'resize') return;
 
+    if (!g.hist) {
+      commitHistory();
+      g.hist = true;
+    }
+
     if (g.free || g.solo) {
       // free position (grid off) or solo resize (auto-adjust off):
       // resize the frame itself, no neighbours involved
@@ -1083,7 +1280,7 @@
         const t = clamp(newW / freeTotal0, 1e-3, 1 - 1e-3);
         g.item.weight = (t / (1 - t)) * others;
       } else if (horiz && g.pinnedAR0 > 1e-6) {
-        // widen by shrinking the row — pinned neighbours keep their aspect
+        // widen by shrinking the row - pinned neighbours keep their aspect
         const newW = clamp(g.w0 + dw, g.minFX, maxWFrac);
         targetH = (1 - newW) * CAR / g.pinnedAR0;
       }
@@ -1148,6 +1345,8 @@
       g.active = true;
       g.cell.classList.add('dragging');
       canvas.classList.remove('animate');
+      commitHistory();
+      g.hist = true;
     }
 
     if (!state.gridMode) {
@@ -1161,7 +1360,7 @@
     }
 
     if (!state.autoAdjust) {
-      // auto-adjust OFF: move this image alone — no swapping, the
+      // auto-adjust OFF: move this image alone - no swapping, the
       // slot it leaves behind stays as white space
       const cw = g.cr.width || 1;
       const ch = g.cr.height || 1;
@@ -1216,6 +1415,8 @@
       if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 5) return;
       g.active = true;
       g.cell.classList.add('dragging');
+      commitHistory();
+      g.hist = true;
     }
 
     g.item.x = g.x1 + (e.clientX - g.x0) / g.cw;
@@ -1310,7 +1511,7 @@
      Toolbar actions
      --------------------------------------------------------- */
 
-  document.getElementById('deleteBtn').addEventListener('click', () => {
+  deleteBtn.addEventListener('click', () => {
     if (state.selText) removeText(state.selText);
     else if (state.selected) removeItem(state.selected);
     else toast('SELECT AN IMAGE OR TEXT FIRST');
@@ -1318,26 +1519,37 @@
 
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (!state.items.length) { toast('NO IMAGES YET'); return; }
+    commitHistory();
     if (!state.gridMode) {
       state.items.forEach(placeFree);
       layout(true);
-      toast('FREEDOM RESET — IMAGES RE-SCATTERED');
+      toast('FREEDOM RESET - IMAGES RE-SCATTERED');
       return;
     }
     rebuildDefault(true);
     layout(true);
-    toast('GRID RESET — EQUAL SIZES, LOCKS CLEARED');
+    toast('GRID RESET - EQUAL SIZES, LOCKS CLEARED');
   });
 
+  let gapDirty = false;
+  gapRange.addEventListener('pointerdown', () => { gapDirty = true; });
+  gapRange.addEventListener('keydown', e => {
+    if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') gapDirty = true;
+  });
   gapRange.addEventListener('input', () => {
+    if (gapDirty) { commitHistory(); gapDirty = false; }
     state.gap = Number(gapRange.value);
     gapVal.textContent = state.gap + 'PX';
     canvas.style.setProperty('--gh', (state.gap / 2) + 'px');
   });
 
+  let sheetCmDirty = false;
+  sheetCmEl.addEventListener('focus', () => { sheetCmDirty = true; });
+
   sheetCmEl.addEventListener('input', () => {
     const v = Number(sheetCmEl.value);
     if (v > 0) {
+      if (sheetCmDirty) { commitHistory(); sheetCmDirty = false; }
       state.sheetCm = v;
       layout();
       updateHUD();
@@ -1353,29 +1565,31 @@
   });
 
   wsCheck.addEventListener('change', () => {
+    commitHistory();
     state.whitespace = wsCheck.checked;
     canvas.classList.toggle('ws', state.whitespace);
-    // drop every solo rect so the grid reclaims all images —
+    // drop every solo rect so the grid reclaims all images -
     // toggling white space always snaps the sheet back into place
     for (const it of state.items) it.ov = null;
     updateModeLabel();
     if (state.whitespace) {
       state.userModified = true;
-      toast('WHITE SPACE ON — ORIGINAL PROPORTIONS KEPT, NOTHING CROPPED');
+      toast('WHITE SPACE ON - ORIGINAL PROPORTIONS KEPT, NOTHING CROPPED');
     } else {
-      toast('AUTO-FIT ON — IMAGES FILL THEIR FRAMES');
+      toast('AUTO-FIT ON - IMAGES FILL THEIR FRAMES');
     }
     layout(true);
   });
 
   adjCheck.addEventListener('change', () => {
+    commitHistory();
     state.autoAdjust = adjCheck.checked;
     if (state.autoAdjust) {
-      // clear every solo rect — the justified grid takes back over
+      // clear every solo rect - the justified grid takes back over
       for (const it of state.items) it.ov = null;
-      toast('AUTO-ADJUST ON — RESIZING ADJUSTS NEIGHBOURING IMAGES');
+      toast('AUTO-ADJUST ON - RESIZING ADJUSTS NEIGHBOURING IMAGES');
     } else {
-      toast('AUTO-ADJUST OFF — ONLY THE IMAGE YOU TOUCH CHANGES');
+      toast('AUTO-ADJUST OFF - ONLY THE IMAGE YOU TOUCH CHANGES');
     }
     updateModeLabel();
     updateSelection();
@@ -1396,31 +1610,32 @@
     const url = URL.createObjectURL(f);
     const im = new Image();
     im.onload = () => {
-      const oldURL = state.bgURL;
+      commitHistory();
       state.bgImg = im;
       state.bgURL = url;
+      state.bgName = f.name;
       canvas.style.backgroundImage = 'url("' + url + '")';
       canvas.classList.add('has-bg');
       bgVal.textContent = f.name;
       bgVal.title = f.name;
       bgClearBtn.hidden = false;
-      if (oldURL) URL.revokeObjectURL(oldURL);
-      toast('BACKGROUND SET — SHOWS THROUGH WHITE SPACE + GAPS');
+      toast('BACKGROUND SET - SHOWS THROUGH WHITE SPACE + GAPS');
     };
     im.onerror = () => { URL.revokeObjectURL(url); toast('COULD NOT LOAD BACKGROUND'); };
     im.src = url;
   });
 
   bgClearBtn.addEventListener('click', () => {
-    if (state.bgURL) URL.revokeObjectURL(state.bgURL);
+    commitHistory();
     state.bgImg = null;
     state.bgURL = null;
+    state.bgName = '';
     canvas.style.backgroundImage = '';
     canvas.classList.remove('has-bg');
     bgVal.textContent = 'NONE';
     bgVal.title = '';
     bgClearBtn.hidden = true;
-    toast('BACKGROUND CLEARED — BACK TO WHITE PAPER');
+    toast('BACKGROUND CLEARED - BACK TO WHITE PAPER');
   });
 
   /* ---------------------------------------------------------
@@ -1434,24 +1649,37 @@
     textPanelHead.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   });
 
+  let textDirty = false;
+  let fontDirty = false;
+  let sizeDirty = false;
+  let c1Dirty = false;
+  let c2Dirty = false;
+
+  tText.addEventListener('focus', () => { textDirty = true; });
   tText.addEventListener('input', () => {
     const t = state.selText;
     if (!t) return;
+    if (textDirty) { commitHistory(); textDirty = false; }
     t.text = tText.value;
     renderText(t);
     updateHUD();
   });
 
+  tFont.addEventListener('focus', () => { fontDirty = true; });
   tFont.addEventListener('change', () => {
     const t = state.selText;
     if (!t) return;
+    if (fontDirty) { commitHistory(); fontDirty = false; }
     t.family = tFont.value;
     renderText(t);
   });
 
+  tSize.addEventListener('pointerdown', () => { sizeDirty = true; });
+  tSize.addEventListener('keydown', () => { sizeDirty = true; });
   tSize.addEventListener('input', () => {
     const t = state.selText;
     if (!t) return;
+    if (sizeDirty) { commitHistory(); sizeDirty = false; }
     t.size = Number(tSize.value) / 100;
     tSizeVal.textContent = tSize.value + '%';
     renderText(t);
@@ -1460,6 +1688,7 @@
   tBold.addEventListener('click', () => {
     const t = state.selText;
     if (!t) return;
+    commitHistory();
     t.bold = !t.bold;
     tBold.setAttribute('aria-pressed', t.bold ? 'true' : 'false');
     renderText(t);
@@ -1468,6 +1697,7 @@
   tItal.addEventListener('click', () => {
     const t = state.selText;
     if (!t) return;
+    commitHistory();
     t.italic = !t.italic;
     tItal.setAttribute('aria-pressed', t.italic ? 'true' : 'false');
     renderText(t);
@@ -1476,23 +1706,28 @@
   tGrad.addEventListener('click', () => {
     const t = state.selText;
     if (!t) return;
+    commitHistory();
     t.grad = !t.grad;
     tGrad.setAttribute('aria-pressed', t.grad ? 'true' : 'false');
     tC2.disabled = !t.grad;
     renderText(t);
-    toast(t.grad ? 'GRADIENT ON — 2-COLOUR FILL' : 'GRADIENT OFF — SOLID COLOUR');
+    toast(t.grad ? 'GRADIENT ON - 2-COLOUR FILL' : 'GRADIENT OFF - SOLID COLOUR');
   });
 
+  tC1.addEventListener('focus', () => { c1Dirty = true; });
   tC1.addEventListener('input', () => {
     const t = state.selText;
     if (!t) return;
+    if (c1Dirty) { commitHistory(); c1Dirty = false; }
     t.c1 = tC1.value;
     renderText(t);
   });
 
+  tC2.addEventListener('focus', () => { c2Dirty = true; });
   tC2.addEventListener('input', () => {
     const t = state.selText;
     if (!t) return;
+    if (c2Dirty) { commitHistory(); c2Dirty = false; }
     t.c2 = tC2.value;
     renderText(t);
   });
@@ -1507,7 +1742,9 @@
      Export
      --------------------------------------------------------- */
 
-  document.getElementById('downloadBtn').addEventListener('click', exportPNG);
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+  downloadBtn.addEventListener('click', exportPNG);
 
   function exportPNG() {
     if (!state.items.length && !state.texts.length) { toast('ADD IMAGES OR TEXT FIRST'); return; }
@@ -1555,7 +1792,7 @@
       if (deg) ctx.rotate(deg * Math.PI / 180);
 
       if (state.gridMode && state.whitespace && !f.item.crop && !f.item.ov) {
-        // pinned — proportions already match, draw whole image, no crop
+        // pinned - proportions already match, draw whole image, no crop
         ctx.drawImage(im, -bw / 2, -bh / 2, bw, bh);
       } else {
         // cover-crop, matching CSS object-fit: cover
@@ -1622,6 +1859,14 @@
   window.addEventListener('keydown', e => {
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    const mod = e.metaKey || e.ctrlKey;
+    const key = String(e.key || '').toLowerCase();
+    if (mod && (key === 'z' || key === 'y')) {
+      e.preventDefault();
+      if (gesture) return;
+      if (key === 'y' || e.shiftKey) redo(); else undo();
+      return;
+    }
     if (e.key === 'Escape') select(null);
     if ((e.key === 'Delete' || e.key === 'Backspace') && (state.selected || state.selText)) {
       e.preventDefault();
@@ -1651,5 +1896,15 @@
      --------------------------------------------------------- */
 
   window.addEventListener('resize', () => { if (!gesture) layout(); });
+
+  window.addEventListener('beforeunload', e => {
+    if (!state.items.length && !state.texts.length) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
+  if (!isMac) document.getElementById('pasteBtn').textContent = 'PASTE CTRL+V';
+
   layout();
 })();

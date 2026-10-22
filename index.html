@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>COLLAGE CREW — Image Layout + Resize Console</title>
+<title>COLLAGE CREW - Image Layout + Resize Console</title>
 <meta name="description" content="Drop, paste and resize images into a print-ready 16:9 collage. Lock proportions, allow white space, export PNG. 100% local.">
 <meta name="theme-color" content="#0c0a09">
 <meta property="og:type" content="website">
-<meta property="og:title" content="COLLAGE CREW — Image Layout + Resize Console">
+<meta property="og:title" content="COLLAGE CREW - Image Layout + Resize Console">
 <meta property="og:description" content="Build print-ready 16:9 collages in your browser. Resize, lock proportions, allow white space, export PNG. Nothing is uploaded.">
 <meta property="og:site_name" content="COLLAGE CREW">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23ff6a00'/%3E%3Ctext x='32' y='45' font-family='Arial Black,Arial,sans-serif' font-size='30' font-weight='900' text-anchor='middle' fill='%230c0a09'%3ECC%3C/text%3E%3C/svg%3E">
@@ -30,11 +30,13 @@
   </div>
 
   <div class="tools">
-    <button class="btn accent" id="uploadBtn" type="button">+ UPLOAD</button>
-    <button class="btn" id="pasteBtn" type="button">PASTE ⌘V</button>
-    <button class="btn" id="deleteBtn" type="button">DELETE ✕</button>
-    <a class="btn" href="manual.html">HELP</a>
-    <button class="btn accent" id="downloadBtn" type="button">EXPORT PNG ↓</button>
+    <button class="btn" id="undoBtn" type="button" title="Undo the last change (⌘Z / Ctrl+Z)" aria-label="Undo last change" aria-keyshortcuts="Meta+Z Control+Z" disabled>UNDO</button>
+    <button class="btn" id="redoBtn" type="button" title="Redo the last undone change (⇧⌘Z / Ctrl+Y)" aria-label="Redo last undone change" aria-keyshortcuts="Meta+Shift+Z Control+Y" disabled>REDO</button>
+    <button class="btn accent" id="uploadBtn" type="button" title="Add images from your device" aria-label="Upload images">+ UPLOAD</button>
+    <button class="btn" id="pasteBtn" type="button" title="Paste an image from the clipboard" aria-label="Paste image from clipboard">PASTE ⌘V</button>
+    <button class="btn" id="deleteBtn" type="button" title="Delete the selected image or text box (Del)" aria-label="Delete selection" aria-keyshortcuts="Delete Backspace" disabled>DELETE ✕</button>
+    <a class="btn" href="manual.html" target="_blank" rel="noopener" title="Open the full manual in a new tab" aria-label="Open the manual in a new tab">HELP</a>
+    <button class="btn accent" id="downloadBtn" type="button" title="Export a 3200 × 1800 PNG" aria-label="Export collage as PNG" disabled>EXPORT PNG ↓</button>
   </div>
 </header>
 
@@ -43,7 +45,7 @@
     <div class="frame">
       <div class="frame-label">
         <span>16:9 SHEET</span>
-        <span id="modeLabel">MODE — AUTO-FIT (CROP TO FILL)</span>
+        <span id="modeLabel">MODE - AUTO-FIT (CROP TO FILL)</span>
         <span>EXPORT 3200 × 1800</span>
       </div>
 
@@ -51,22 +53,19 @@
         <div id="empty" class="empty">
           <div class="empty-mark" aria-hidden="true"></div>
           <h2>Drop images here</h2>
-          <p>DRAG &amp; DROP · PASTE (⌘V / CTRL+V) · OR</p>
+          <p>DRAG &amp; DROP / PASTE (⌘V / CTRL+V) / OR</p>
           <button class="btn accent" id="emptyBtn" type="button">SELECT FILES</button>
         </div>
       </div>
     </div>
 
     <div class="hintbar">
-      <span><b>DRAG BODY</b> SWAP</span>
-      <span><b>CORNERS / EDGES</b> RESIZE — NEIGHBOURS ADJUST</span>
-      <span><b>LOCK ICON</b> FREEZE PROPORTIONS</span>
-      <span><b>ROTATE ICON</b> TURN IMAGE 90°</span>
-      <span><b>CROP ICON</b> CROP + FREE SHAPE (WHITE SPACE)</span>
-      <span><b>FREE MODE</b> DRAG IMAGE ANYWHERE (<b>CORNER</b> RESIZE)</span>
-      <span><b>+ TEXT BOX</b> STYLED TEXT · DRAG TO PLACE</span>
-      <span><b>DEL</b> REMOVE · <b>ESC</b> DESELECT</span>
-      <a class="mlink" href="manual.html">MANUAL ↓</a>
+      <span><b>DRAG</b> MOVE / SWAP</span>
+      <span><b>CORNERS</b> RESIZE</span>
+      <span><b>SELECT</b> LOCK / ROTATE / CROP</span>
+      <span><b>⌘Z</b> UNDO</span>
+      <span><b>DEL</b> REMOVE / <b>ESC</b> DESELECT</span>
+      <a class="mlink" href="manual.html" target="_blank" rel="noopener" title="Open the full manual in a new tab">FULL MANUAL ↓</a>
       <span class="local">● 100% LOCAL</span>
     </div>
   </section>
@@ -98,7 +97,7 @@
         </div>
         <div class="stat sel">
           <span>SELECTED</span>
-          <strong id="hudSelected" title="">—</strong>
+          <strong id="hudSelected" title="">-</strong>
         </div>
       </div>
 
@@ -114,7 +113,7 @@
         <div class="ctrl-num">
           <div class="ctrl-gap-row">
             <label>SELECTED SIZE</label>
-            <span id="selDimsVal">—</span>
+            <span id="selDimsVal">-</span>
           </div>
         </div>
       </div>
@@ -131,15 +130,15 @@
           <input id="gapRange" type="range" min="0" max="24" step="1" value="0">
         </div>
 
-        <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped — leftover paper stays white.">
+        <label class="ctrl-check" for="wsCheck" title="Keep each image's original proportions. Nothing is cropped or reshaped - leftover paper stays white.">
           <input type="checkbox" id="wsCheck">
           <span class="box" aria-hidden="true"></span>
-          <span class="txt">ALLOW WHITE SPACE — KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
+          <span class="txt">ALLOW WHITE SPACE - KEEP ORIGINAL IMAGE PROPORTIONS (NO CROP)</span>
         </label>
 
         <div class="ctrl-sub-head">Neighbours</div>
 
-        <label class="ctrl-check" for="adjCheck" title="ON = resizing one image adjusts its neighbours so the grid stays justified. OFF = resizing or dragging affects only that image — every other image keeps its exact size and position; freed space stays as white paper or your background.">
+        <label class="ctrl-check" for="adjCheck" title="ON = resizing one image adjusts its neighbours so the grid stays justified. OFF = resizing or dragging affects only that image - every other image keeps its exact size and position; freed space stays as white paper or your background.">
           <input type="checkbox" id="adjCheck" checked>
           <span class="box" aria-hidden="true"></span>
           <span class="txt">AUTO-ADJUST NEIGHBOURING IMAGES</span>
@@ -154,8 +153,8 @@
           <label id="modeSegLabel">POSITIONING</label>
         </div>
         <div class="ctrl-seg" role="group" aria-labelledby="modeSegLabel">
-          <button class="seg wide" id="modeGridBtn" type="button" aria-pressed="true" title="Images snap into the justified grid — rows and columns resize together.">GRID</button>
-          <button class="seg wide" id="modeFreeBtn" type="button" aria-pressed="false" title="Free position — drag each image anywhere, size it freely with the corner handles.">FREE</button>
+          <button class="seg wide" id="modeGridBtn" type="button" aria-pressed="true" title="Images snap into the justified grid - rows and columns resize together.">GRID</button>
+          <button class="seg wide" id="modeFreeBtn" type="button" aria-pressed="false" title="Free position - drag each image anywhere, size it freely with the corner handles.">FREE</button>
         </div>
       </div>
 
@@ -165,7 +164,7 @@
 
         <div class="ctrl-text" id="textPanel" hidden>
         <button class="ctrl-text-head" id="textPanelHead" type="button" aria-expanded="true" aria-controls="textPanelBody">
-          <span>TEXT STYLING — <span id="textSelLabel">—</span></span>
+          <span>TEXT STYLING - <span id="textSelLabel">-</span></span>
           <span class="caret" aria-hidden="true">▾</span>
         </button>
         <div class="ctrl-text-body" id="textPanelBody">
